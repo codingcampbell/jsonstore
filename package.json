@@ -6,6 +6,12 @@
   "author": "Matt Campbell <matt@mattcampbell.net>",
   "license": "MIT",
   "dependencies": {
-    "sqlite3": "~2.1.10"
+    "sqlite3": "~2.1.10",
+    "coffee-script": "~1.6.3"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-watch": "~0.4.4"
   }
 }
