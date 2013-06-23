@@ -1,0 +1,11 @@
+{
+  "name": "jsonstore",
+  "version": "0.0.0",
+  "description": "JSON store on top of SQLite",
+  "main": "jsonstore.js",
+  "author": "Matt Campbell <matt@mattcampbell.net>",
+  "license": "MIT",
+  "dependencies": {
+    "sqlite3": "~2.1.10"
+  }
+}
