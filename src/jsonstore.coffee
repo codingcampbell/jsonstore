@@ -3,6 +3,9 @@ noop = ->
 
 class JSONStore
 	constructor: (dbFile, customDriver) ->
+		if (!dbFile?)
+			throw new Error('Missing parameter: dbFile')
+
 		@driver = customDriver || new Driver()
 		@driver.init(dbFile)
 

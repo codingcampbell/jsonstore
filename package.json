@@ -5,6 +5,9 @@
   "main": "jsonstore.js",
   "author": "Matt Campbell <matt@mattcampbell.net>",
   "license": "MIT",
+  "scripts": {
+    "test": "grunt test"
+  },
   "dependencies": {
     "sqlite3": "~2.1.10",
     "coffee-script": "~1.6.3"
