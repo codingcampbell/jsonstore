@@ -27,4 +27,7 @@ class JSONStore
 
 		@driver.createStore(String(name), keys, callback)
 
+	query: (store, criteria, callback) ->
+		@driver.query(store, criteria, callback)
+
 module.exports = JSONStore
