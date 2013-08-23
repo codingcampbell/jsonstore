@@ -29,7 +29,10 @@ describe 'SQLite Driver', ->
 					done()
 
 			Object.keys(keys).forEach (key) ->
-				db.driver.db.get "SELECT * FROM sqlite_master WHERE `name` = 'idx-test-#{key}'", rowExists.bind(key)
+				query = """
+					SELECT * FROM sqlite_master WHERE `name` = 'idx-test-#{key}'
+				"""
+				db.driver.db.get query, rowExists.bind(key)
 
 		it 'should create a column for each key', (done) ->
 			db.driver.db.all 'PRAGMA table_info(test)', (err, rows) ->
@@ -40,10 +43,10 @@ describe 'SQLite Driver', ->
 					return !rows.some (row) ->
 						return row.name == key
 
-				if (keyNames.length)
-					return done(new Error('No columns for keys: ' + keyNames.join(', ')))
+				if (!keyNames.length)
+					return done()
 
-				done()
+				done(new Error('No columns for keys: ' + keyNames.join(', ')))
 
 		it 'should create a __meta table if one does not exist', (done) ->
 			db.driver.db.all 'PRAGMA table_info(__meta)', (err, rows) ->
@@ -74,3 +77,71 @@ describe 'SQLite Driver', ->
 					return done(new Error('Key data does not match'))
 
 				done()
+
+		it 'should create an `id` key/column if it is omitted', (done) ->
+			db.createStore 'testNoId', { foo: 'string' }, (result) ->
+				if (!result.success)
+					return done(new Error(result.error))
+
+			db.driver.db.all 'PRAGMA table_info(testNoId)', (err, rows) ->
+				if (err)
+					return done(new Error(result.error))
+
+				if (!rows || !rows.some)
+					return done(new Error('No columns found'))
+
+				if (rows.some (row) -> /^id$/.test(row.name))
+					return done()
+
+				done(new Error('id column not found'))
+
+	describe 'save', ->
+		id = null
+
+		it 'should add `id` to object if it is omitted', (done) ->
+			db.save 'testNoId', { foo: 'bar' }, (result) ->
+				if (!result.success)
+					return done(new Error(result.error))
+
+				if (typeof result.data.id == 'undefined')
+					return done(new Error('`id` property missing from object'))
+
+				id = result.data.id
+				done()
+
+		it 'should replace object when saving with an existing `id`', (done) ->
+			newValue = 'newBar'
+
+			db.save 'testNoId', { id: id, foo: newValue }, (result) ->
+				query = 'select * from testNoId where id = ?'
+
+				db.driver.db.get query, id, (err, result) ->
+					if (err)
+						return done(new Error(err))
+
+					if (!result)
+						return done(new Error("No rows returned"))
+
+					if (result.foo == newValue)
+						return done()
+
+					done(new Error("Expected `foo` to be #{newValue}"))
+
+		it 'should override object values with `keys` parameter', (done) ->
+			newValue = 'overrideBar'
+			object = { id: id, foo: 'bar' }
+
+			db.save 'testNoId', object, { foo: newValue }, (result) ->
+				query = 'select * from testNoId where id = ?'
+
+				db.driver.db.get query, id, (err, result) ->
+					if (err)
+						return done(new Error(err))
+
+					if (!result)
+						return done(new Error("No rows returned"))
+
+					if (result.foo == newValue)
+						return done()
+
+					done(new Error("Expected `foo` to be #{newValue}"))
