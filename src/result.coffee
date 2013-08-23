@@ -1,7 +1,11 @@
 class Result
 	constructor: ->
+		@data = null
 		@success = false
-		@length = 0
 		@error = null
+
+	setError: (error) ->
+		@success = false
+		@error = message
 
 module.exports = Result

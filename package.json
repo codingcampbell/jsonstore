@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "sqlite3": "~2.1.10",
-    "coffee-script": "~1.6.3"
+    "coffee-script": "~1.6.3",
+    "async": "~0.2.9"
   },
   "devDependencies": {
     "grunt": "~0.4.1",

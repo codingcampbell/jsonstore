@@ -13,8 +13,7 @@ Requirements:
 
 - Tables will be created for each "Store" (user-facing "container" object).
 -- The table's schema will include columns for each "keyed" attribute.
--- Keys are required properties in the JSON object being stored.
--- Other properties can exist, but non-keys can't be queried.
+-- Any properties can exist on an object, but non-keys can't be queried.
 
 - The database will track time information for each object for fast query ops:
 -- Creation time
@@ -34,14 +33,22 @@ Parameters:
 - `callback` {function} - Called with a `Result`
 
 
-api.save(object, store) - Save an object to a store
+api.save(object, store, keys, callback) - Save an object to a store
 ---
 
 Parameters:
 
 - `object` {object} - JSON-serializable object
 - `store` {string} - Name of object store
+- `keys` {object} - (Optional) set of key/values to override keys from `object`
 - `callback` {function} - Called with a `Result` argument
+
+By default, keys on the top-level of `object` will automatically be saved to
+their indexed columns in the database (if they were declared in `createStore`).
+
+The optional `keys` parameter is useful for keying/indexing properties that may
+not be on the top-level object (e.g. a property in a nested object). It could
+also be used to index values that are not in `object` at all.
 
 api.query(store, criteria, callback) - Query an object store
 ---
@@ -100,5 +107,4 @@ All callbacks from the database include a `Result` object.
 No matter what operation, a `Result` object will always have a boolean
 `success` property. Any problems will be logged in an `error` property.
 
-Query operations will numerically index each object on `Result` itself.
-You can check the `length` property to iterate.
+Rows from query operations will be available on the Result's `data` array.

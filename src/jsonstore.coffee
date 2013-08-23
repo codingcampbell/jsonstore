@@ -27,4 +27,21 @@ class JSONStore
 
 		@driver.createStore(String(name), keys, callback)
 
+	save: (store, object, keys, callback) ->
+		if (typeof store != 'string')
+			throw new Error('Missing parameter: store (expected a string)')
+
+		if (!object?)
+			throw new Error('Missing parameter: object')
+
+		# `Keys` param is optional, omitting it means callback takes its place
+		if (typeof keys == 'function')
+			callback = keys
+			keys = {}
+
+		if (!callback?)
+			callback = noop
+
+		@driver.save(store, object, keys, callback)
+
 module.exports = JSONStore
