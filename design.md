@@ -50,6 +50,20 @@ The optional `keys` parameter is useful for keying/indexing properties that may
 not be on the top-level object (e.g. a property in a nested object). It could
 also be used to index values that are not in `object` at all.
 
+One key is always required: `id`. When you save your object,
+`id` is used to decide if an existing object needs to be updated (instead of
+creating a new object). When you want to update an object, simply save with its
+`id` key set to the existing value.
+
+If you do not specify `id` in your keys, it will assume `id: 'number'`.
+
+Any time you save an object without an `id`, it will be auto-generated and
+placed into your object for you to reference later.
+
+You can specify your own IDs (and you can set `id` to be a `string`). If you
+choose to use a non-numeric ID and do not include it in your object, the
+database will throw an error about rejecting your NULL ID.
+
 api.query(store, criteria, callback) - Query an object store
 ---
 

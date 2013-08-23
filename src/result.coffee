@@ -1,6 +1,6 @@
 class Result
 	constructor: ->
-		@data = null
+		@data = {}
 		@success = false
 		@error = null
 

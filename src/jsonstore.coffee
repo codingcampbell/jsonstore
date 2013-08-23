@@ -39,6 +39,9 @@ class JSONStore
 			callback = keys
 			keys = {}
 
+		if (!keys?)
+			keys = {}
+
 		if (!callback?)
 			callback = noop
 
