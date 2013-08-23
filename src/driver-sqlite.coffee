@@ -37,6 +37,7 @@ class Driver
 
 	createStore: (name, keys, callback) ->
 		statements = []
+		keys['__jsondata'] = 'string'
 		sql = "CREATE TABLE `#{name}`"
 		columns = []
 		meta = { keys: Object.keys(keys) }
@@ -50,9 +51,12 @@ class Driver
 				column += 'TEXT'
 
 			columns.push(column)
-			statements.push """
-				CREATE INDEX `idx-#{name}-#{key}` ON `#{name}`(`#{key}`)
-			"""
+
+			# Index user-specified keys only
+			if (!/^__/.test(key))
+				statements.push """
+					CREATE INDEX `idx-#{name}-#{key}` ON `#{name}`(`#{key}`)
+				"""
 
 		# Meta table is used to track keys (instead of querying the schema)
 		statements.push """

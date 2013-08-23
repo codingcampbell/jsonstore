@@ -19,8 +19,10 @@ describe 'SQLite Driver', ->
 					return
 
 				if (!row)
-					count = -1
-					return done(new Error("No index for key: #{this}"))
+					# Only throw error if this key was not user-specified
+					if (!/^__/.test(this))
+						count = -1
+						return done(new Error("No index for key: #{this}"))
 
 				count += 1
 				if (count == keyCount)
