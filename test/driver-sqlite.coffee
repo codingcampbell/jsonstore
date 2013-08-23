@@ -42,3 +42,33 @@ describe 'SQLite Driver', ->
 					return done(new Error('No columns for keys: ' + keyNames.join(', ')))
 
 				done()
+
+		it 'should create a __meta table if one does not exist', (done) ->
+			db.driver.db.all 'PRAGMA table_info(__meta)', (err, rows) ->
+				if (err)
+					return done(new Error(err))
+
+				if (!rows || !rows.length)
+					return done(new Error('No __meta table found'))
+
+				done()
+
+		it 'should store key information in the __meta table', (done) ->
+			query = "SELECT data FROM __meta WHERE `store` = 'test'"
+
+			db.driver.db.get query, (err, row) ->
+				if (err)
+					return done(new Error(err))
+
+				try
+					data = JSON.parse(row.data)
+				catch err
+					return done(new Error("Could not parse JSON: #{err}"))
+
+				if (!data || !data.keys)
+					return done(new Error('Could not find key data'))
+
+				if (Object.keys(keys).join(',') != data.keys.join(','))
+					return done(new Error('Key data does not match'))
+
+				done()

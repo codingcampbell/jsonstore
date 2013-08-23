@@ -2,6 +2,8 @@ sqlite3 = require 'sqlite3'
 Result = require './result'
 noop = ->
 
+sanitize = (str) -> str.replace(/'/g, "''")
+
 # Common handling for (most) errors
 handleError = (error, result, callback) ->
 	if (error)
@@ -37,6 +39,7 @@ class Driver
 		statements = []
 		sql = "CREATE TABLE `#{name}`"
 		columns = []
+		meta = { keys: Object.keys(keys) }
 
 		Object.keys(keys).forEach (key) ->
 			column = "`#{key}` "
@@ -51,9 +54,25 @@ class Driver
 				CREATE INDEX `idx-#{name}-#{key}` ON `#{name}`(`#{key}`)
 			"""
 
-		sql += '(' + columns.join(', ') + ')'
+		# Meta table is used to track keys (instead of querying the schema)
+		statements.push """
+			CREATE TABLE IF NOT EXISTS __meta(
+				`id` INTEGER PRIMARY KEY,
+				`store` VARCHAR(255) NOT NULL,
+				`data` TEXT NOT NULL
+			);
+		"""
 
+		statements.push """
+			INSERT INTO __meta (`store`, `data`)
+			VALUES('#{sanitize name}', '#{sanitize JSON.stringify meta}');
+		"""
+
+		# Finish CREATE TABLE for this store
+		sql += '(' + columns.join(', ') + ')'
 		statements.unshift(sql)
+
+		# Wrap into transaction
 		statements.unshift('BEGIN')
 		statements.push('COMMIT')
 
