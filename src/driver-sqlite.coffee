@@ -1,56 +1,10 @@
 sqlite3 = require 'sqlite3'
 Result = require './result'
+util = require './sql-util'
 noop = ->
 
-opMap =
-	gt: '>'
-	lt: '<'
-	eq: '='
-	ne: '!='
-
-sanitize = (input) -> input.replace(/"/g, '\\"')
-
-buildCriteria = (criteria, sub) ->
-	if (!criteria.and? && !criteria.or?)
-		if (criteria.constructor != Array)
-			criteria = [criteria]
-
-		criteria = { 'and': criteria }
-
-	console.log(criteria)
-
-	mode = 'and'
-
-	if (criteria.or?)
-		mode = 'or'
-
-	list = criteria[mode]
-
-	result = ' ('
-	if (sub)
-		result = ' ' + mode.toUpperCase() + result
-
-	return result + (list.map (condition) ->
-		op = opMap[condition.op] ? '='
-
-		if (condition.value == null)
-			op = 'IS'
-
-			if (condition.op == 'ne')
-				op = 'IS NOT'
-
-			# Unescaped NULL for SQL
-			value = 'NULL'
-		else
-			value = '"' + sanitize(condition.value) + '"'
-
-		if (condition.and?)
-			value += buildCriteria(condition.and, true)
-		else if (condition.or?)
-			value += buildCriteria(condition.or, true)
-
-		return "(`#{condition.key}` #{op} #{value})"
-	).join(' ' + mode.toUpperCase() + ' ') + ')'
+# Escape quotes for SQLite-compatible strings
+sanitize = (str) -> String(str).replace(/'/g, "''")
 
 # Common handling for (most) errors
 handleError = (error, result, callback) ->
@@ -110,7 +64,7 @@ class Driver
 		multiExec(@db, statements, callback)
 
 	query: (store, criteria, callback) ->
-		query = 'WHERE' + buildCriteria(criteria)
+		query = 'WHERE' + util.buildCriteria(criteria, sanitize)
 		console.log(query)
 
 module.exports = Driver
