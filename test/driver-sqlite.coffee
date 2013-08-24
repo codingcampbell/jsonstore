@@ -90,13 +90,28 @@ describe 'SQLite Driver', ->
 				if (!rows || !rows.some)
 					return done(new Error('No columns found'))
 
-				if (rows.some (row) -> /^id$/.test(row.name))
+				if (rows.some (row) -> row.name == 'id')
 					return done()
 
 				done(new Error('id column not found'))
 
 	describe 'save', ->
 		id = null
+		newValue = null
+		checkNewValue = (done) -> (result) ->
+			query = 'select * from testNoId where id = ?'
+
+			db.driver.db.get query, id, (err, result) ->
+				if (err)
+					return done(new Error(err))
+
+				if (!result)
+					return done(new Error("No rows returned"))
+
+				if (result.foo == newValue)
+					return done()
+
+				done(new Error("Expected `foo` to be: #{newValue}"))
 
 		it 'should add `id` to object if it is omitted', (done) ->
 			db.save 'testNoId', { foo: 'bar' }, (result) ->
@@ -112,36 +127,10 @@ describe 'SQLite Driver', ->
 		it 'should replace object when saving with an existing `id`', (done) ->
 			newValue = 'newBar'
 
-			db.save 'testNoId', { id: id, foo: newValue }, (result) ->
-				query = 'select * from testNoId where id = ?'
-
-				db.driver.db.get query, id, (err, result) ->
-					if (err)
-						return done(new Error(err))
-
-					if (!result)
-						return done(new Error("No rows returned"))
-
-					if (result.foo == newValue)
-						return done()
-
-					done(new Error("Expected `foo` to be #{newValue}"))
+			db.save 'testNoId', { id: id, foo: newValue }, checkNewValue(done)
 
 		it 'should override object values with `keys` parameter', (done) ->
 			newValue = 'overrideBar'
 			object = { id: id, foo: 'bar' }
 
-			db.save 'testNoId', object, { foo: newValue }, (result) ->
-				query = 'select * from testNoId where id = ?'
-
-				db.driver.db.get query, id, (err, result) ->
-					if (err)
-						return done(new Error(err))
-
-					if (!result)
-						return done(new Error("No rows returned"))
-
-					if (result.foo == newValue)
-						return done()
-
-					done(new Error("Expected `foo` to be #{newValue}"))
+			db.save 'testNoId', object, { foo: newValue }, checkNewValue(done)
