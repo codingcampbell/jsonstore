@@ -93,10 +93,10 @@ class Driver
 	createStore: (name, keys, callback) ->
 		statements = []
 		keys.id = keys.id || 'number'
-		keys['__jsondata'] = 'string'
 		sql = "CREATE TABLE `#{name}`"
 		columns = []
 		meta = { keys: Object.keys(keys) }
+		keys['__jsondata'] = 'string'
 
 		Object.keys(keys).forEach (key) ->
 			column = "`#{key}` "
