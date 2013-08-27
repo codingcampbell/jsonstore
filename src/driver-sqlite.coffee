@@ -1,6 +1,7 @@
 async = require 'async'
 sqlite3 = require 'sqlite3'
 Result = require './result'
+util = require './sql-util'
 noop = ->
 
 # Escape quotes for SQLite-compatible strings
@@ -218,5 +219,8 @@ class Driver
 
 	], (err, result) -> callback(err || result)
 
+	query: (store, criteria, callback) ->
+		query = 'WHERE' + util.buildCriteria(criteria, sanitize)
+		console.log(query)
 
 module.exports = Driver
