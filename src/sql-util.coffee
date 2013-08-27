@@ -5,13 +5,14 @@ opMap =
 	ne: '!='
 
 buildCriteria = (criteria, sanitize, sub) ->
+	if (criteria.key?)
+		criteria = { 'and': criteria }
+
 	if (!criteria.and? && !criteria.or?)
 		if (criteria.constructor != Array)
 			criteria = [criteria]
 
 		criteria = { 'and': criteria }
-
-	console.log(criteria)
 
 	mode = 'and'
 
@@ -19,10 +20,12 @@ buildCriteria = (criteria, sanitize, sub) ->
 		mode = 'or'
 
 	list = criteria[mode]
+	if (list.constructor != Array)
+		list = [list]
 
-	result = ' ('
+	result = '('
 	if (sub)
-		result = ' ' + mode.toUpperCase() + result
+		result = ' ' + mode.toUpperCase() + ' ' + result
 
 	return result + (list.map (condition) ->
 		op = opMap[condition.op] ? '='
@@ -36,12 +39,17 @@ buildCriteria = (criteria, sanitize, sub) ->
 			# Unescaped NULL for SQL
 			value = 'NULL'
 		else
-			value = '"' + sanitize(condition.value) + '"'
+			if (typeof condition.value == 'number')
+				value = condition.value
+			else if (typeof condition.value == 'boolean')
+				value = condition.value
+			else
+				value = '"' + sanitize(condition.value) + '"'
 
 		if (condition.and?)
-			value += buildCriteria(condition.and, sanitize, true)
+			value += buildCriteria({ 'and': condition.and }, sanitize, true)
 		else if (condition.or?)
-			value += buildCriteria(condition.or, sanitize, true)
+			value += buildCriteria({ 'or': condition.or }, sanitize, true)
 
 		return "(`#{condition.key}` #{op} #{value})"
 	).join(' ' + mode.toUpperCase() + ' ') + ')'
