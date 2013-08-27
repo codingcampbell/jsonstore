@@ -219,8 +219,28 @@ class Driver
 
 	], (err, result) -> callback(err || result)
 
-	query: (store, criteria, callback) ->
-		query = 'WHERE' + util.buildCriteria(criteria, sanitize)
-		console.log(query)
+	get: (store, criteria, callback) ->
+		sql = """
+			SELECT __jsondata FROM #{store} WHERE
+			#{util.buildCriteria(criteria, sanitize)}
+		"""
+
+		@query sql, (result) ->
+			if (!result.success)
+				return callback(result)
+
+			if (!result.data)
+				result.setError('No JSON data returned')
+				return callback(result)
+
+			try
+				result.data = JSON.parse("""
+					[#{result.data.map((r) -> r['__jsondata']).join(',')}]
+				""")
+			catch err
+				result.setError(err)
+				return callback(result)
+
+			callback(result)
 
 module.exports = Driver

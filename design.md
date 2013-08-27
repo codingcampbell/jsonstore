@@ -64,7 +64,7 @@ You can specify your own IDs (and you can set `id` to be a `string`). If you
 choose to use a non-numeric ID and do not include it in your object, the
 database will throw an error about rejecting your NULL ID.
 
-api.query(store, criteria, callback) - Query an object store
+api.get(store, criteria, callback) - Query an object store
 ---
 
 Parameters:

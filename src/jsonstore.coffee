@@ -47,7 +47,10 @@ class JSONStore
 
 		@driver.save(store, object, keys, callback)
 
-	query: (store, criteria, callback) ->
-		@driver.query(store, criteria, callback)
+	get: (store, criteria, callback) ->
+		if (typeof callback != 'function')
+			callback = noop
+
+		@driver.get(store, criteria, callback)
 
 module.exports = JSONStore

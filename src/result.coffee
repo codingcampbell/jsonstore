@@ -6,6 +6,6 @@ class Result
 
 	setError: (error) ->
 		@success = false
-		@error = message
+		@error = error
 
 module.exports = Result
