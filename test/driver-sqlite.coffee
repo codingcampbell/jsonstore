@@ -62,6 +62,8 @@ describe 'SQLite Driver', ->
 			query = "SELECT data FROM __meta WHERE `store` = 'test'"
 
 			db.driver.db.get query, (err, row) ->
+				keyNames = Object.keys(keys).filter (key) -> !/^__/.test(key)
+
 				if (err)
 					return done(new Error(err))
 
@@ -73,7 +75,8 @@ describe 'SQLite Driver', ->
 				if (!data || !data.keys)
 					return done(new Error('Could not find key data'))
 
-				if (Object.keys(keys).join(',') != data.keys.join(','))
+
+				if (keyNames.join(',') != data.keys.join(','))
 					return done(new Error('Key data does not match'))
 
 				done()
