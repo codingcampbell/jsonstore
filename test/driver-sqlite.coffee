@@ -75,7 +75,6 @@ describe 'SQLite Driver', ->
 				if (!data || !data.keys)
 					return done(new Error('Could not find key data'))
 
-
 				if (keyNames.join(',') != data.keys.join(','))
 					return done(new Error('Key data does not match'))
 

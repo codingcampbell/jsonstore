@@ -110,10 +110,10 @@ Find all teenage users less than age 20:
 
 Find all users who are 18 or 21
 
-    [
-        { key: 'age', value: '18' }
-        { or: true, key: 'age', value: '21' }
-    ]
+    { key: 'age', value: '18', or: {
+        key: 'age', value: '21'
+      }
+    }
 
 Result objects
 ===
