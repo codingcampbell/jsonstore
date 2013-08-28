@@ -78,40 +78,38 @@ essentially a `WHERE` clause in SQL terms.
 
 Each criteria object can have the following properties:
 
-- `key` {string} - The key of the JSON object the criteria is targeting
+- `where` {string} - The key of the JSON object the criteria is targeting
 - `op` {string} - The type of criteria operation (default `eq`). Types are:
--- `eq` - equal to
--- `ne` - not equal to
--- `lt` - less than
--- `gt` - greater than
-- `or` {boolean} - Optional, default `false`, specifies conditional logic
-- Value {string}: The right-hand side of the criteria argument
+-- `=` - equal to
+-- `!=` - not equal to
+-- `<` - less than
+-- `>` - greater than
+- Value (of `op`) {string}: The right-hand side of the criteria argument
 
 By default, a list of criteria operates as `AND` to the previous criteria item.
-Passing `or: true` in a criteria item will flip this logic.
-This design does not account for grouping of AND/OR comparisons.
+You can pass additional criteria as nested `and` or `or` properties.
 
 As a reminder: only keyed properties of a JSON object can be queried.
 
 Examples:
 
 Find all users of age 20:
-`{ key: 'age', value: '20'}`
+`{ where: 'age', '=': 20 }`
 
 Find all users less than age 20:
-`{ key: 'age', op: 'lt', value: '20'}`
+`{ where: 'age', '<': 20 }`
 
 Find all teenage users less than age 20:
 
     [
-        { key: 'age', op: 'gt', value: '13' }
-        { key: 'age', op: 'lt', value: '20' }
+        { where: 'age', '>': '13' },
+        { where: 'age', '<': '20' }
     ]
 
 Find all users who are 18 or 21
 
-    { key: 'age', value: '18', or: {
-        key: 'age', value: '21'
+    { where: 'age', '=': '18', or: {
+        where: 'age', '=': '21'
       }
     }
 

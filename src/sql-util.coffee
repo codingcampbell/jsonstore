@@ -1,11 +1,7 @@
-opMap =
-	gt: '>'
-	lt: '<'
-	eq: '='
-	ne: '!='
+operators = ['<', '<=', '>', '>=', '=', '!=']
 
 buildCriteria = (criteria, sanitize, sub) ->
-	if (criteria.key?)
+	if (criteria.where?)
 		criteria = { 'and': criteria }
 
 	if (!criteria.and? && !criteria.or?)
@@ -28,12 +24,15 @@ buildCriteria = (criteria, sanitize, sub) ->
 		result = ' ' + mode.toUpperCase() + ' ' + result
 
 	return result + (list.map (condition) ->
-		op = opMap[condition.op] ? '='
+		op = condition.op = operators.filter (key) ->
+			typeof condition[key] != 'undefined'
+
+		condition.value = condition[condition.op]
 
 		if (condition.value == null)
 			op = 'IS'
 
-			if (condition.op == 'ne')
+			if (condition.op == '!=')
 				op = 'IS NOT'
 
 			# Unescaped NULL for SQL
@@ -51,7 +50,7 @@ buildCriteria = (criteria, sanitize, sub) ->
 		else if (condition.or?)
 			value += buildCriteria({ 'or': condition.or }, sanitize, true)
 
-		return "(`#{condition.key}` #{op} #{value})"
+		return "(`#{condition.where}` #{op} #{value})"
 	).join(' ' + mode.toUpperCase() + ' ') + ')'
 
 module.exports =
