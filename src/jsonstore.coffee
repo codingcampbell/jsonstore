@@ -53,4 +53,9 @@ class JSONStore
 
 		@driver.get(store, criteria, callback)
 
+	# Same as `get`, except results are streamed back one row at
+	# a time instead of holding all result rows in memory
+	stream: (store, criteria, callback) ->
+		return @driver.stream(store, criteria, callback)
+
 module.exports = JSONStore

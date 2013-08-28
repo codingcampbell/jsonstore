@@ -184,7 +184,7 @@ class Driver
 				INSERT OR REPLACE INTO `#{store}` (
 					#{keyNames.map((key) -> "`#{key}`").join ', '}
 				) VALUES (
-					#{keyNames.map((key) -> ":#{key}").join(', ')}
+					#{keyNames.map((key) -> ":#{key}").join ', '}
 				);"
 			"""
 
@@ -219,13 +219,13 @@ class Driver
 
 	], (err, result) -> callback(err || result)
 
-	get: (store, criteria, callback) ->
-		sql = """
-			SELECT __jsondata FROM #{store} WHERE
-			#{util.buildCriteria(criteria, sanitize)}
-		"""
+	getQuery: (store, criteria) -> """
+		SELECT __jsondata FROM #{store} WHERE
+		#{util.buildCriteria(criteria, sanitize)}
+	"""
 
-		@query sql, (result) ->
+	get: (store, criteria, callback) ->
+		@query @getQuery(store, criteria), (result) ->
 			if (!result.success)
 				return callback(result)
 
@@ -242,5 +242,41 @@ class Driver
 				return callback(result)
 
 			callback(result)
+
+	stream: (store, criteria, callback) -> @db.serialize =>
+		result = new Result()
+		currentRow = null
+
+		@db.each(
+			@getQuery(store, criteria)
+			(err, row) ->
+				if (err)
+					result.setError(err)
+					return callback(result)
+
+				if (!row['__jsondata'])
+					result.setError('No JSON data returned')
+					return callback(result)
+
+				if (currentRow)
+					result.success = true
+					result.data = currentRow
+					callback(result)
+
+				try
+					currentRow = JSON.parse(row['__jsondata'])
+				catch err
+					result.setError(err)
+					return callback(result)
+
+			(err, numRows) ->
+				if (err)
+					result.setError(err)
+					return callback(result, true)
+
+				result.success = true
+				result.data = currentRow
+				callback(result, true, numRows)
+		)
 
 module.exports = Driver
