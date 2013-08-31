@@ -2,6 +2,9 @@ Driver = require './driver-sqlite'
 noop = ->
 
 defaultCriteria = (criteria) ->
+	if (!criteria? || !criteria.where?)
+		return null
+
 	# Assume non-object criteria to be value of `id` key
 	if (typeof criteria == 'number' || typeof criteria == 'string')
 		criteria = where: 'id', '=': criteria
@@ -64,6 +67,9 @@ class JSONStore
 		@driver.save(store, object, keys, callback)
 
 	get: (store, criteria, callback) ->
+		if (!criteria? || !criteria.where?)
+			criteria = null
+			
 		if (!callback?)
 			callback = noop
 

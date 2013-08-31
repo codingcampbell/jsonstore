@@ -229,10 +229,13 @@ class Driver
 
 	], (err, result) -> callback(err || result)
 
-	getQuery: (store, criteria) -> """
-		SELECT __jsondata FROM #{store} WHERE
-		#{util.buildCriteria(criteria, sanitize)}
-	"""
+	getQuery: (store, criteria) ->
+		sql = "SELECT __jsondata FROM #{store}"
+
+		if (criteria? && criteria.where?)
+			sql += " WHERE #{util.buildCriteria(criteria, sanitize)}"
+
+		return sql
 
 	get: (store, criteria, callback) ->
 		@query @getQuery(store, criteria), (result) ->
@@ -293,10 +296,13 @@ class Driver
 		)
 
 	delete: (store, criteria, callback) -> @db.serialize =>
-		sql = """
-			DELETE FROM #{store} WHERE
-			#{util.buildCriteria(criteria, sanitize)}
-		"""
+		sql = "TRUNCATE #{store}"
+
+		if (criteria? && criteria.where?)
+			sql = """
+				DELETE FROM #{store} WHERE
+				#{util.buildCriteria(criteria, sanitize)}
+			"""
 
 		@exec sql, callback
 
