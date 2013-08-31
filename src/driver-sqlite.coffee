@@ -143,6 +143,16 @@ class Driver
 
 		multiExec(@db, statements, callback)
 
+	deleteStore: (name, callback) ->
+		statements = [
+			'BEGIN'
+			"DELETE FROM __meta WHERE `store` = '#{sanitize name}'"
+			"DROP TABLE #{sanitize name}"
+			'COMMIT'
+		]
+
+		multiExec(@db, statements, callback)
+
 	save: (store, object, keys, callback) -> async.waterfall [
 		# Begin transaction
 		(callback) => @exec 'BEGIN', -> callback(null)

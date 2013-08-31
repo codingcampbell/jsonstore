@@ -34,6 +34,15 @@ class JSONStore
 
 		@driver.createStore(String(name), keys, callback)
 
+	deleteStore: (name, callback) ->
+		if (!name?)
+			throw new Error('Missing parameter: name')
+
+		if (!callback?)
+			callback = noop
+
+		@driver.deleteStore(String(name), callback)
+
 	save: (store, object, keys, callback) ->
 		if (typeof store != 'string')
 			throw new Error('Missing parameter: store (expected a string)')
@@ -55,7 +64,7 @@ class JSONStore
 		@driver.save(store, object, keys, callback)
 
 	get: (store, criteria, callback) ->
-		if (typeof callback != 'function')
+		if (!callback?)
 			callback = noop
 
 		@driver.get(store, defaultCriteria(criteria), callback)
