@@ -67,9 +67,14 @@ class JSONStore
 		@driver.save(store, object, keys, callback)
 
 	get: (store, criteria, callback) ->
-		if (!criteria? || !criteria.where?)
+		if (typeof store != 'string')
+			throw new Error('Missing parameter: store (expected a string)')
+
+		# If `criteria` is a function, the parameter was omitted
+		if (typeof criteria == 'function')
+			callback = criteria
 			criteria = null
-			
+
 		if (!callback?)
 			callback = noop
 
@@ -78,9 +83,25 @@ class JSONStore
 	# Same as `get`, except results are streamed back one row at
 	# a time instead of holding all result rows in memory
 	stream: (store, criteria, callback) ->
+		if (typeof store != 'string')
+			throw new Error('Missing parameter: store (expected a string)')
+
+		# If `criteria` is a function, the parameter was omitted
+		if (typeof criteria == 'function')
+			callback = criteria
+			criteria = null
+
 		@driver.stream(store, defaultCriteria(criteria), callback)
 
 	delete: (store, criteria, callback) ->
+		if (typeof store != 'string')
+			throw new Error('Missing parameter: store (expected a string)')
+
+		# If `criteria` is a function, the parameter was omitted
+		if (typeof criteria == 'function')
+			callback = criteria
+			criteria = null
+
 		@driver.delete(store, defaultCriteria(criteria), callback)
 
 module.exports = JSONStore
