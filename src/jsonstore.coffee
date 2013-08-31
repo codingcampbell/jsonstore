@@ -65,4 +65,7 @@ class JSONStore
 	stream: (store, criteria, callback) ->
 		@driver.stream(store, defaultCriteria(criteria), callback)
 
+	delete: (store, criteria, callback) ->
+		@driver.delete(store, defaultCriteria(criteria), callback)
+
 module.exports = JSONStore

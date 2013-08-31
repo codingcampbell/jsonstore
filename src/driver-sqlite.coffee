@@ -249,6 +249,8 @@ class Driver
 
 		@db.each(
 			@getQuery(store, criteria)
+
+			# Callback for every low except the last one
 			(err, row) ->
 				if (err)
 					result.setError(err)
@@ -269,6 +271,7 @@ class Driver
 					result.setError(err)
 					return callback(result)
 
+			# Callback for the last row only
 			(err, numRows) ->
 				if (err)
 					result.setError(err)
@@ -278,5 +281,13 @@ class Driver
 				result.data = currentRow
 				callback(result, true, numRows)
 		)
+
+	delete: (store, criteria, callback) -> @db.serialize =>
+		sql = """
+			DELETE FROM #{store} WHERE
+			#{util.buildCriteria(criteria, sanitize)}
+		"""
+
+		@exec sql, callback
 
 module.exports = Driver
