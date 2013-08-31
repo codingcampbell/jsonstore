@@ -256,11 +256,11 @@ class Driver
 
 			callback(result)
 
-	stream: (store, criteria, callback) -> @db.serialize =>
+	stream: (store, criteria, callback) ->
 		result = new Result()
 		currentRow = null
 
-		@db.each(
+		@db.serialize => @db.each(
 			@getQuery(store, criteria)
 
 			# Callback for every low except the last one
@@ -295,7 +295,7 @@ class Driver
 				callback(result, true, numRows)
 		)
 
-	delete: (store, criteria, callback) -> @db.serialize =>
+	delete: (store, criteria, callback) ->
 		sql = "TRUNCATE #{store}"
 
 		if (criteria? && criteria.where?)
