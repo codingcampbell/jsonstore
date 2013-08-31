@@ -1,6 +1,13 @@
 Driver = require './driver-sqlite'
 noop = ->
 
+defaultCriteria = (criteria) ->
+	# Assume non-object criteria to be value of `id` key
+	if (typeof criteria == 'number' || typeof criteria == 'string')
+		criteria = where: 'id', '=': criteria
+
+	return criteria
+
 class JSONStore
 	constructor: (dbFile, customDriver) ->
 		if (!dbFile?)
@@ -51,11 +58,11 @@ class JSONStore
 		if (typeof callback != 'function')
 			callback = noop
 
-		@driver.get(store, criteria, callback)
+		@driver.get(store, defaultCriteria(criteria), callback)
 
 	# Same as `get`, except results are streamed back one row at
 	# a time instead of holding all result rows in memory
 	stream: (store, criteria, callback) ->
-		return @driver.stream(store, criteria, callback)
+		@driver.stream(store, defaultCriteria(criteria), callback)
 
 module.exports = JSONStore
