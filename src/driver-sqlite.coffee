@@ -92,7 +92,6 @@ class Driver
 
 	createStore: (name, keys, callback) ->
 		statements = []
-		keys.id = keys.id || 'number'
 		sql = "CREATE TABLE `#{name}`"
 		columns = []
 		meta = { keys: Object.keys(keys) }

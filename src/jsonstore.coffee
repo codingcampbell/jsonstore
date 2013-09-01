@@ -35,6 +35,7 @@ class JSONStore
 			if (keys[key] != 'string' && keys[key] != 'number')
 				keys[key] = 'string'
 
+		keys.id = keys.id || 'number'
 		@driver.createStore(String(name), keys, callback)
 
 	deleteStore: (name, callback) ->
