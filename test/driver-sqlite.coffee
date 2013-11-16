@@ -1,10 +1,23 @@
 JSONStore = require '../src/jsonstore'
+async = require 'async'
 
 db = new JSONStore(':memory:')
 keys =
 	id: 'number'
 	name: 'string'
 keyCount = Object.keys(keys).length
+testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser']
+
+insertArray = (data, callback) ->
+	inserts = data.map (name) ->
+		return (callback) ->
+			db.save 'test', {name: name}, (result) ->
+				if (!result.success)
+					return callback(result)
+
+				callback(null, result)
+
+	async.series inserts, callback
 
 db.createStore 'test', keys, (result) ->
 	if (!result.success)
@@ -136,6 +149,68 @@ describe 'SQLite Driver', ->
 			object = { id: id, foo: 'bar' }
 
 			db.save 'testNoId', object, { foo: newValue }, checkNewValue(done)
+
+		it 'should save an array of test data', (done) ->
+			insertArray testData, (err, result) ->
+				if (err)
+					return done(err)
+
+				db.get 'test', (result) ->
+					if (!result.success)
+						return done(result.error)
+
+					if (!result.data.length)
+						return done(new Error('No data after save'))
+
+					done()
+
+	describe 'delete', ->
+		getItemCount = (callback) -> db.get 'test', (result) ->
+			if (!result.success)
+				return callback(result.error)
+
+			callback(null, result.data.length)
+
+		it 'should delete only the item that matches the criteria', (done) ->
+
+			async.waterfall [
+				getItemCount
+
+				(beforeCount, callback) ->
+					criteria = { where: 'name', '=': 'Mario' }
+
+					db.delete 'test', criteria, (result) ->
+						if (!result.success)
+							return callback(result.error)
+
+						getItemCount (err, afterCount) ->
+							callback(err, beforeCount, afterCount)
+
+				(beforeCount, afterCount, callback) ->
+					if (afterCount == beforeCount - 1)
+						return callback(null)
+
+					callback(new Error('Unexpected deletion count'))
+
+			], done
+
+		it 'should delete all items when there is no criteria', (done) ->
+			async.waterfall [
+				(callback) -> db.delete 'test', (result) ->
+					if (!result.success)
+						return callback(result.error)
+
+					callback(null)
+
+				getItemCount
+
+				(count, callback) ->
+					if (count == 0)
+						return callback(null)
+
+					callback(new Error("Expected count to be 0, not #{count}"))
+
+			], done
 
 	describe 'deleteStore', ->
 		it 'should remove key information from the __meta table', (done) ->
