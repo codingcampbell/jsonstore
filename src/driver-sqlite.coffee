@@ -295,11 +295,10 @@ class Driver
 		)
 
 	delete: (store, criteria, callback) ->
-		sql = "TRUNCATE #{store}"
+		sql = "DELETE FROM #{store}"
 
 		if (criteria? && criteria.where?)
-			sql = """
-				DELETE FROM #{store} WHERE
+			sql += """ WHERE
 				#{util.buildCriteria(criteria, sanitize)}
 			"""
 
