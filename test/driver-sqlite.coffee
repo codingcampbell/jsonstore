@@ -3,235 +3,235 @@ async = require 'async'
 
 db = new JSONStore(':memory:')
 keys =
-	id: 'number'
-	name: 'string'
+  id: 'number'
+  name: 'string'
 keyCount = Object.keys(keys).length
 testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser']
 
 insertArray = (data, callback) ->
-	inserts = data.map (name) ->
-		return (callback) ->
-			db.save 'test', {name: name}, (result) ->
-				if (!result.success)
-					return callback(result)
+  inserts = data.map (name) ->
+    return (callback) ->
+      db.save 'test', {name: name}, (result) ->
+        if (!result.success)
+          return callback(result)
 
-				callback(null, result)
+        callback(null, result)
 
-	async.series inserts, callback
+  async.series inserts, callback
 
 db.createStore 'test', keys, (result) ->
-	if (!result.success)
-		throw new Error(result.error)
+  if (!result.success)
+    throw new Error(result.error)
 
 describe 'SQLite Driver', ->
-	describe 'createStore', ->
-		it 'should create an index for each key', (done) ->
-			count = 0
-			rowExists = (err, row) ->
-				if (count < 0)
-					return
+  describe 'createStore', ->
+    it 'should create an index for each key', (done) ->
+      count = 0
+      rowExists = (err, row) ->
+        if (count < 0)
+          return
 
-				if (!row)
-					# Only throw error if this key was not user-specified
-					if (!/^__/.test(this))
-						count = -1
-						return done(new Error("No index for key: #{this}"))
+        if (!row)
+          # Only throw error if this key was not user-specified
+          if (!/^__/.test(this))
+            count = -1
+            return done(new Error("No index for key: #{this}"))
 
-				count += 1
-				if (count == keyCount)
-					done()
+        count += 1
+        if (count == keyCount)
+          done()
 
-			Object.keys(keys).forEach (key) ->
-				query = """
-					SELECT * FROM sqlite_master WHERE `name` = 'idx-test-#{key}'
-				"""
-				db.driver.db.get query, rowExists.bind(key)
+      Object.keys(keys).forEach (key) ->
+        query = """
+          SELECT * FROM sqlite_master WHERE `name` = 'idx-test-#{key}'
+        """
+        db.driver.db.get query, rowExists.bind(key)
 
-		it 'should create a column for each key', (done) ->
-			db.driver.db.all 'PRAGMA table_info(test)', (err, rows) ->
-				if (err)
-					return done(new Error(err))
+    it 'should create a column for each key', (done) ->
+      db.driver.db.all 'PRAGMA table_info(test)', (err, rows) ->
+        if (err)
+          return done(new Error(err))
 
-				keyNames = Object.keys(keys).filter (key) ->
-					return !rows.some (row) ->
-						return row.name == key
+        keyNames = Object.keys(keys).filter (key) ->
+          return !rows.some (row) ->
+            return row.name == key
 
-				if (!keyNames.length)
-					return done()
+        if (!keyNames.length)
+          return done()
 
-				done(new Error('No columns for keys: ' + keyNames.join(', ')))
+        done(new Error('No columns for keys: ' + keyNames.join(', ')))
 
-		it 'should create a __meta table if one does not exist', (done) ->
-			db.driver.db.all 'PRAGMA table_info(__meta)', (err, rows) ->
-				if (err)
-					return done(new Error(err))
+    it 'should create a __meta table if one does not exist', (done) ->
+      db.driver.db.all 'PRAGMA table_info(__meta)', (err, rows) ->
+        if (err)
+          return done(new Error(err))
 
-				if (!rows || !rows.length)
-					return done(new Error('No __meta table found'))
+        if (!rows || !rows.length)
+          return done(new Error('No __meta table found'))
 
-				done()
+        done()
 
-		it 'should store key information in the __meta table', (done) ->
-			query = "SELECT data FROM __meta WHERE `store` = 'test'"
+    it 'should store key information in the __meta table', (done) ->
+      query = "SELECT data FROM __meta WHERE `store` = 'test'"
 
-			db.driver.db.get query, (err, row) ->
-				keyNames = Object.keys(keys).filter (key) -> !/^__/.test(key)
+      db.driver.db.get query, (err, row) ->
+        keyNames = Object.keys(keys).filter (key) -> !/^__/.test(key)
 
-				if (err)
-					return done(new Error(err))
+        if (err)
+          return done(new Error(err))
 
-				try
-					data = JSON.parse(row.data)
-				catch err
-					return done(new Error("Could not parse JSON: #{err}"))
+        try
+          data = JSON.parse(row.data)
+        catch err
+          return done(new Error("Could not parse JSON: #{err}"))
 
-				if (!data || !data.keys)
-					return done(new Error('Could not find key data'))
+        if (!data || !data.keys)
+          return done(new Error('Could not find key data'))
 
-				if (keyNames.join(',') != data.keys.join(','))
-					return done(new Error('Key data does not match'))
+        if (keyNames.join(',') != data.keys.join(','))
+          return done(new Error('Key data does not match'))
 
-				done()
+        done()
 
-		it 'should create an `id` key/column if it is omitted', (done) ->
-			db.createStore 'testNoId', { foo: 'string' }, (result) ->
-				if (!result.success)
-					return done(new Error(result.error))
+    it 'should create an `id` key/column if it is omitted', (done) ->
+      db.createStore 'testNoId', { foo: 'string' }, (result) ->
+        if (!result.success)
+          return done(new Error(result.error))
 
-			db.driver.db.all 'PRAGMA table_info(testNoId)', (err, rows) ->
-				if (err)
-					return done(new Error(result.error))
+      db.driver.db.all 'PRAGMA table_info(testNoId)', (err, rows) ->
+        if (err)
+          return done(new Error(result.error))
 
-				if (!rows || !rows.some)
-					return done(new Error('No columns found'))
+        if (!rows || !rows.some)
+          return done(new Error('No columns found'))
 
-				if (rows.some (row) -> row.name == 'id')
-					return done()
+        if (rows.some (row) -> row.name == 'id')
+          return done()
 
-				done(new Error('id column not found'))
+        done(new Error('id column not found'))
 
-	describe 'save', ->
-		id = null
-		newValue = null
-		checkNewValue = (done) -> (result) ->
-			query = 'select * from testNoId where id = ?'
+  describe 'save', ->
+    id = null
+    newValue = null
+    checkNewValue = (done) -> (result) ->
+      query = 'select * from testNoId where id = ?'
 
-			db.driver.db.get query, id, (err, result) ->
-				if (err)
-					return done(new Error(err))
+      db.driver.db.get query, id, (err, result) ->
+        if (err)
+          return done(new Error(err))
 
-				if (!result)
-					return done(new Error("No rows returned"))
+        if (!result)
+          return done(new Error("No rows returned"))
 
-				if (result.foo == newValue)
-					return done()
+        if (result.foo == newValue)
+          return done()
 
-				done(new Error("Expected `foo` to be: #{newValue}"))
+        done(new Error("Expected `foo` to be: #{newValue}"))
 
-		it 'should add `id` to object if it is omitted', (done) ->
-			db.save 'testNoId', { foo: 'bar' }, (result) ->
-				if (!result.success)
-					return done(new Error(result.error))
+    it 'should add `id` to object if it is omitted', (done) ->
+      db.save 'testNoId', { foo: 'bar' }, (result) ->
+        if (!result.success)
+          return done(new Error(result.error))
 
-				if (typeof result.data.id == 'undefined')
-					return done(new Error('`id` property missing from object'))
+        if (typeof result.data.id == 'undefined')
+          return done(new Error('`id` property missing from object'))
 
-				id = result.data.id
-				done()
+        id = result.data.id
+        done()
 
-		it 'should replace object when saving with an existing `id`', (done) ->
-			newValue = 'newBar'
+    it 'should replace object when saving with an existing `id`', (done) ->
+      newValue = 'newBar'
 
-			db.save 'testNoId', { id: id, foo: newValue }, checkNewValue(done)
+      db.save 'testNoId', { id: id, foo: newValue }, checkNewValue(done)
 
-		it 'should override object values with `keys` parameter', (done) ->
-			newValue = 'overrideBar'
-			object = { id: id, foo: 'bar' }
+    it 'should override object values with `keys` parameter', (done) ->
+      newValue = 'overrideBar'
+      object = { id: id, foo: 'bar' }
 
-			db.save 'testNoId', object, { foo: newValue }, checkNewValue(done)
+      db.save 'testNoId', object, { foo: newValue }, checkNewValue(done)
 
-		it 'should save an array of test data', (done) ->
-			insertArray testData, (err, result) ->
-				if (err)
-					return done(err)
+    it 'should save an array of test data', (done) ->
+      insertArray testData, (err, result) ->
+        if (err)
+          return done(err)
 
-				db.get 'test', (result) ->
-					if (!result.success)
-						return done(result.error)
+        db.get 'test', (result) ->
+          if (!result.success)
+            return done(result.error)
 
-					if (!result.data.length)
-						return done(new Error('No data after save'))
+          if (!result.data.length)
+            return done(new Error('No data after save'))
 
-					done()
+          done()
 
-	describe 'delete', ->
-		getItemCount = (callback) -> db.get 'test', (result) ->
-			if (!result.success)
-				return callback(result.error)
+  describe 'delete', ->
+    getItemCount = (callback) -> db.get 'test', (result) ->
+      if (!result.success)
+        return callback(result.error)
 
-			callback(null, result.data.length)
+      callback(null, result.data.length)
 
-		it 'should delete only the item that matches the criteria', (done) ->
+    it 'should delete only the item that matches the criteria', (done) ->
 
-			async.waterfall [
-				getItemCount
+      async.waterfall [
+        getItemCount
 
-				(beforeCount, callback) ->
-					criteria = { where: 'name', '=': 'Mario' }
+        (beforeCount, callback) ->
+          criteria = { where: 'name', '=': 'Mario' }
 
-					db.delete 'test', criteria, (result) ->
-						if (!result.success)
-							return callback(result.error)
+          db.delete 'test', criteria, (result) ->
+            if (!result.success)
+              return callback(result.error)
 
-						getItemCount (err, afterCount) ->
-							callback(err, beforeCount, afterCount)
+            getItemCount (err, afterCount) ->
+              callback(err, beforeCount, afterCount)
 
-				(beforeCount, afterCount, callback) ->
-					if (afterCount == beforeCount - 1)
-						return callback(null)
+        (beforeCount, afterCount, callback) ->
+          if (afterCount == beforeCount - 1)
+            return callback(null)
 
-					callback(new Error('Unexpected deletion count'))
+          callback(new Error('Unexpected deletion count'))
 
-			], done
+      ], done
 
-		it 'should delete all items when there is no criteria', (done) ->
-			async.waterfall [
-				(callback) -> db.delete 'test', (result) ->
-					if (!result.success)
-						return callback(result.error)
+    it 'should delete all items when there is no criteria', (done) ->
+      async.waterfall [
+        (callback) -> db.delete 'test', (result) ->
+          if (!result.success)
+            return callback(result.error)
 
-					callback(null)
+          callback(null)
 
-				getItemCount
+        getItemCount
 
-				(count, callback) ->
-					if (count == 0)
-						return callback(null)
+        (count, callback) ->
+          if (count == 0)
+            return callback(null)
 
-					callback(new Error("Expected count to be 0, not #{count}"))
+          callback(new Error("Expected count to be 0, not #{count}"))
 
-			], done
+      ], done
 
-	describe 'deleteStore', ->
-		it 'should remove key information from the __meta table', (done) ->
-			db.deleteStore 'test', (result) ->
-				if (!result.success)
-					return done(new Error(result.error))
+  describe 'deleteStore', ->
+    it 'should remove key information from the __meta table', (done) ->
+      db.deleteStore 'test', (result) ->
+        if (!result.success)
+          return done(new Error(result.error))
 
-			query = "SELECT data FROM __meta WHERE `store` = 'test'"
+      query = "SELECT data FROM __meta WHERE `store` = 'test'"
 
-			db.driver.db.get query, (err, row) ->
-				if (err)
-					return done(new Error(err))
+      db.driver.db.get query, (err, row) ->
+        if (err)
+          return done(new Error(err))
 
-				if (row && row.data)
-					return done(new Error('Data still exists in __meta table'))
+        if (row && row.data)
+          return done(new Error('Data still exists in __meta table'))
 
-				done()
+        done()
 
-		it 'should remove the table for the store', (done) ->
-				db.get 'test', (result) ->
-					if (result.success)
-						return done(new Error('Table still exists'))
+    it 'should remove the table for the store', (done) ->
+        db.get 'test', (result) ->
+          if (result.success)
+            return done(new Error('Table still exists'))
 
-					done()
+          done()
