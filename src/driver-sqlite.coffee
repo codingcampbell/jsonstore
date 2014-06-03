@@ -16,6 +16,20 @@ handleError = (error, result, callback) ->
 
   return false
 
+# Expand criteria into WHERE clause
+expandCriteria = (criteria, params) ->
+  if (!criteria?)
+    return ''
+
+  criteria = criteria.filter (clause) -> clause.where?
+
+  if (criteria.length)
+    return ' WHERE ' + criteria.map((clause) ->
+      util.buildCriteria(clause, sanitize, params)
+    ).join ' AND '
+
+  return ''
+
 # Run multiple non-prepared statements
 multiExec = (db, statements, callback) ->
   result = new Result()
@@ -228,16 +242,14 @@ Driver::save = (store, object, keys, callback) -> async.waterfall [
 
 ], (err, result) -> callback(err || result)
 
-Driver::getQuery = (store, criteria) ->
-  sql = "SELECT __jsondata FROM #{store}"
-
-  if (criteria? && criteria.where?)
-    sql += " WHERE #{util.buildCriteria(criteria, sanitize)}"
+Driver::getQuery = (store, criteria, params) ->
+  sql = "SELECT __jsondata FROM #{store}" + expandCriteria(criteria, params)
 
   return sql
 
 Driver::get = (store, criteria, callback) ->
-  @query @getQuery(store, criteria), (result) ->
+  params = []
+  @query @getQuery(store, criteria, params), params, (result) ->
     if (!result.success)
       return callback(result)
 
@@ -295,13 +307,9 @@ Driver::stream = (store, criteria, callback) ->
   )
 
 Driver::delete = (store, criteria, callback) ->
-  sql = "DELETE FROM #{store}"
+  params = []
+  sql = "DELETE FROM #{store}" + expandCriteria(criteria, params)
 
-  if (criteria? && criteria.where?)
-    sql += """ WHERE
-      #{util.buildCriteria(criteria, sanitize)}
-    """
-
-  @exec sql, callback
+  @exec sql, params, callback
 
 module.exports = Driver
