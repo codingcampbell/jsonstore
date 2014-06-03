@@ -1,13 +1,31 @@
 Driver = require './driver-sqlite'
 noop = ->
 
+wrapCriteria = (criteria) ->
+  criteria = defaultCriteria(criteria)
+  if (criteria == null)
+    return null
+
+  if (criteria instanceof Array)
+    if (!criteria.length)
+      return null
+    return criteria
+
+  return [criteria]
+
 defaultCriteria = (criteria) ->
-  if (!criteria? || !criteria.where?)
+  if (criteria instanceof Array)
+    return criteria.map(defaultCriteria).filter (c) -> c != null
+
+  if (!criteria?)
     return null
 
   # Assume non-object criteria to be value of `id` key
   if (typeof criteria == 'number' || typeof criteria == 'string')
     criteria = where: 'id', '=': criteria
+
+  if (!criteria.where?)
+    return null
 
   return criteria
 
@@ -79,7 +97,7 @@ JSONStore::get = (store, criteria, callback) ->
   if (!callback?)
     callback = noop
 
-  @driver.get(store, defaultCriteria(criteria), callback)
+  @driver.get(store, wrapCriteria(criteria), callback)
 
 # Same as `get`, except results are streamed back one row at
 # a time instead of holding all result rows in memory
@@ -92,7 +110,7 @@ JSONStore::stream = (store, criteria, callback) ->
     callback = criteria
     criteria = null
 
-  @driver.stream(store, defaultCriteria(criteria), callback)
+  @driver.stream(store, wrapCriteria(criteria), callback)
 
 JSONStore::delete = (store, criteria, callback) ->
   if (typeof store != 'string')
@@ -103,6 +121,6 @@ JSONStore::delete = (store, criteria, callback) ->
     callback = criteria
     criteria = null
 
-  @driver.delete(store, defaultCriteria(criteria), callback)
+  @driver.delete(store, wrapCriteria(criteria), callback)
 
 module.exports = JSONStore
