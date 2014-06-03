@@ -1,6 +1,6 @@
 operators = ['<', '<=', '>', '>=', '=', '!=']
 
-buildCriteria = (criteria, sanitize, sub) ->
+buildCriteria = (criteria, sanitize, params, sub) ->
   if (criteria.where?)
     criteria = { 'and': criteria }
 
@@ -45,10 +45,15 @@ buildCriteria = (criteria, sanitize, sub) ->
       else
         value = '"' + sanitize(condition.value) + '"'
 
+    if (params)
+      params.push(condition.value)
+      value = '?'
+
     if (condition.and?)
-      value += buildCriteria({ 'and': condition.and }, sanitize, true)
+      value += buildCriteria({ 'and': condition.and }, sanitize, params, true)
     else if (condition.or?)
-      value += buildCriteria({ 'or': condition.or }, sanitize, true)
+      value += buildCriteria({ 'or': condition.or }, sanitize, params, true)
+
 
     return "(`#{condition.where}` #{op} #{value})"
   ).join(' ' + mode.toUpperCase() + ' ') + ')'
