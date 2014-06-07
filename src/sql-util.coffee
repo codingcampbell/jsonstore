@@ -73,7 +73,16 @@ expandCriteria = (criteria, sanitize, params) ->
     buildCriteria(clause, sanitize, params)
   ).join ' AND '
 
+# Common handling for (most) errors
+handleError = (error, result, callback) ->
+  if (error)
+    result.error = error
+    callback(result)
+    return true
+
+  return false
 
 module.exports =
   buildCriteria: buildCriteria
   expandCriteria: expandCriteria
+  handleError: handleError

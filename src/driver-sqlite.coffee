@@ -7,15 +7,6 @@ noop = ->
 # Escape quotes for SQLite-compatible strings
 sanitize = (str) -> String(str).replace(/'/g, "''")
 
-# Common handling for (most) errors
-handleError = (error, result, callback) ->
-  if (error)
-    result.error = error
-    callback(result)
-    return true
-
-  return false
-
 # Run multiple non-prepared statements
 multiExec = (db, statements, callback) ->
   result = new Result()
@@ -28,7 +19,7 @@ multiExec = (db, statements, callback) ->
 
   db.serialize ->
     db.exec statements.join('; '), (error) ->
-      if (handleError(error, result, callback))
+      if (util.handleError(error, result, callback))
         return callback = noop
 
       result.success = true
@@ -47,7 +38,7 @@ Driver::query = (query, params, callback) ->
     params = []
 
   @db.serialize => @db.all query, params, (err, data) ->
-    if (!handleError(err, result, callback))
+    if (!util.handleError(err, result, callback))
       result.success = true
       result.data = data
 
@@ -62,7 +53,7 @@ Driver::exec = (statement, params, callback) ->
     params = []
 
   @db.serialize => @db.run statement, params, (err, data) ->
-    if (!handleError(err, result, callback))
+    if (!util.handleError(err, result, callback))
       result.success = true
       result.data = this
 
