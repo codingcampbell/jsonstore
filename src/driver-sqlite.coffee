@@ -82,55 +82,7 @@ Driver::getMetaData =  (store, callback) ->
     return callback(result)
 
 Driver::createStore = (name, keys, callback) ->
-  statements = []
-  sql = "CREATE TABLE `#{name}`"
-  columns = []
-  meta = { keys: Object.keys(keys) }
-  keys['__jsondata'] = 'string'
-
-  Object.keys(keys).forEach (key) ->
-    column = "`#{key}` "
-
-    if (keys[key] == 'number')
-      column += 'INTEGER'
-    else
-      column += 'TEXT'
-
-    if (key == 'id')
-      column += ' PRIMARY KEY NOT NULL'
-
-    columns.push(column)
-
-    # Index user-specified keys only
-    if (!/^__/.test(key))
-      type = (key == 'id' && 'UNIQUE' || '') + ' INDEX'
-
-      statements.push """
-        CREATE #{type} `idx-#{name}-#{key}` ON `#{name}`(`#{key}`)
-      """
-
-  # Meta table is used to track keys (instead of querying the schema)
-  statements.push """
-    CREATE TABLE IF NOT EXISTS __meta(
-      `id` INTEGER PRIMARY KEY,
-      `store` VARCHAR(255) NOT NULL,
-      `data` TEXT NOT NULL
-    );
-  """
-
-  statements.push """
-    INSERT INTO __meta (`store`, `data`)
-    VALUES('#{sanitize name}', '#{sanitize JSON.stringify meta}');
-  """
-
-  # Finish CREATE TABLE for this store
-  sql += '(' + columns.join(', ') + ')'
-  statements.unshift(sql)
-
-  # Wrap into transaction
-  statements.unshift('BEGIN')
-  statements.push('COMMIT')
-
+  statements = util.createStore(name, keys, sanitize)
   multiExec(@db, statements, callback)
 
 Driver::deleteStore = (name, callback) ->
@@ -251,7 +203,7 @@ Driver::stream = (store, criteria, callback) ->
   @db.serialize => @db.each(
     @getQuery(store, criteria)
 
-    # Callback for every low except the last one
+    # Callback for every row except the last one
     (err, row) ->
       if (err)
         result.setError(err)
