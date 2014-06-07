@@ -58,5 +58,22 @@ buildCriteria = (criteria, sanitize, params, sub) ->
     return "(`#{condition.where}` #{op} #{value})"
   ).join(' ' + mode.toUpperCase() + ' ') + ')'
 
+
+# Expand criteria into WHERE clause
+expandCriteria = (criteria, sanitize, params) ->
+  if (!criteria?)
+    return ''
+
+  criteria = criteria.filter (clause) -> clause.where?
+
+  if (!criteria.length)
+    return ''
+
+  return ' WHERE ' + criteria.map((clause) ->
+    buildCriteria(clause, sanitize, params)
+  ).join ' AND '
+
+
 module.exports =
   buildCriteria: buildCriteria
+  expandCriteria: expandCriteria
