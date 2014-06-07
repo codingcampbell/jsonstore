@@ -74,7 +74,10 @@ createStore = (name, keys, sanitize) ->
     if (keys[key] == 'number')
       column += 'INTEGER'
     else
-      column += 'TEXT'
+      if (!/^__/.test(key))
+        column += 'VARCHAR(255)'
+      else
+        column += 'TEXT'
 
     if (key == 'id')
       column += ' PRIMARY KEY NOT NULL'
