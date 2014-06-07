@@ -15,9 +15,10 @@
   },
   "devDependencies": {
     "grunt": "~0.4.1",
+    "grunt-cafe-mocha": "~0.1.7",
     "grunt-contrib-coffee": "~0.7.0",
     "grunt-contrib-watch": "~0.4.4",
-    "grunt-cafe-mocha": "~0.1.7",
+    "mysql": "^2.3.2",
     "should": "~1.2.2"
   }
 }
