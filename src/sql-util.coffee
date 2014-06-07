@@ -61,7 +61,7 @@ buildCriteria = (criteria, sanitize, params, sub) ->
   ).join(' ' + mode.toUpperCase() + ' ') + ')'
 
 # Create statements for creating an object store
-createStore = (name, keys, sanitize) ->
+createStore = (name, keys, sanitize, autoincrement) ->
   statements = []
   sql = "CREATE TABLE `#{name}`"
   columns = []
@@ -81,6 +81,8 @@ createStore = (name, keys, sanitize) ->
 
     if (key == 'id')
       column += ' PRIMARY KEY NOT NULL'
+      if (autoincrement)
+        column += ' ' + autoincrement
 
     columns.push(column)
 
