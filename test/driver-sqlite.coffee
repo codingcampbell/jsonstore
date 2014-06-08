@@ -19,11 +19,15 @@ insertArray = (data, callback) ->
 
   async.series inserts, callback
 
-db.createStore 'test', keys, (result) ->
-  if (!result.success)
-    throw new Error(result.error)
+initDb = (callback) ->
+  db.createStore 'test', keys, (result) ->
+    if (!result.success)
+      return callback(result.error)
+    callback()
 
 describe 'SQLite Driver', ->
+  before(initDb)
+
   describe 'createStore', ->
     it 'should create an index for each key', (done) ->
       count = 0
