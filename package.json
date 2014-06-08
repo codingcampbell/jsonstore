@@ -9,15 +9,18 @@
     "test": "grunt test"
   },
   "dependencies": {
-    "sqlite3": "~2.1.10",
-    "coffee-script": "~1.6.3",
-    "async": "~0.2.9"
+    "async": "~0.2.9",
+    "sqlite3": "~2.1.10"
   },
   "devDependencies": {
+    "coffee-script": "~1.6.3",
     "grunt": "~0.4.1",
-    "grunt-contrib-coffee": "~0.7.0",
-    "grunt-contrib-watch": "~0.4.4",
     "grunt-cafe-mocha": "~0.1.7",
+    "grunt-contrib-clean": "^0.5.0",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-compress": "^0.9.1",
+    "grunt-contrib-copy": "^0.5.0",
+    "grunt-contrib-watch": "~0.4.4",
     "should": "~1.2.2"
   }
 }
