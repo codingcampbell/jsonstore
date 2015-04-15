@@ -160,8 +160,29 @@ Driver::save = (store, object, keys, callback) -> async.waterfall [
 ], (err, result) -> callback(err || result)
 
 Driver::getQuery = (store, criteria, params) ->
+  sql = "SELECT __jsondata FROM #{store}" + util.expandCriteria(criteria, sanitize, params)
+
+  return sql
 
 Driver::get = (store, criteria, callback) ->
+  params = []
+  @query @getQuery(store, criteria, params), params, (result) ->
+    if (!result.success)
+      return callback(result)
+
+    if (!result.data)
+      result.setError('No JSON data returned')
+      return callback(result)
+
+    try
+      result.data = JSON.parse("""
+        [#{result.data.map((r) -> r['__jsondata']).join(',')}]
+      """)
+    catch err
+      result.setError(err)
+      return callback(result)
+
+    callback(result)
 
 Driver::stream = (store, criteria, callback) ->
 
