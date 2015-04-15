@@ -97,7 +97,7 @@ createStore = (name, keys, sanitize, autoincrement) ->
   # Meta table is used to track keys (instead of querying the schema)
   statements.push """
     CREATE TABLE IF NOT EXISTS __meta(
-      `id` INTEGER PRIMARY KEY,
+      `id` INTEGER PRIMARY KEY #{autoincrement || ''},
       `store` VARCHAR(255) NOT NULL,
       `data` TEXT NOT NULL
     );
