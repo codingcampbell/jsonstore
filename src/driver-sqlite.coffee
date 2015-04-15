@@ -137,7 +137,7 @@ Driver::save = (store, object, keys, callback) -> async.waterfall [
         #{keyNames.map((key) -> "`#{key}`").join ', '}
       ) VALUES (
         #{keyNames.map((key) -> ":#{key}").join ', '}
-      );"
+      );
     """
 
     # Execute insert statement
@@ -151,7 +151,7 @@ Driver::save = (store, object, keys, callback) -> async.waterfall [
       if (typeof keyData[':id'] == 'undefined')
         if (typeof result.data.lastID != 'undefined')
           object.id = result.data.lastID
-          return @save(store, object, keys, callback)
+          return @save(store, object, keys, (result) -> callback(null, result))
 
         result.setError('No ID key found in object or from SQLite')
         return callback(result)
