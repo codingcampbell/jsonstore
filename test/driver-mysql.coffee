@@ -16,6 +16,19 @@ keys =
   name: 'string'
 keyCount = Object.keys(keys).length
 
+testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser']
+
+insertArray = (data, callback) ->
+  inserts = data.map (name) ->
+    (callback) ->
+      db.save 'test', {name: name}, (result) ->
+        if (!result.success)
+          return callback(result)
+
+        callback(null, result)
+
+  async.series inserts, callback
+
 initDb = (done) -> async.series [
   # Create database
   (callback) ->
@@ -131,3 +144,59 @@ describe 'MySQL Driver', ->
             return done()
 
           done(new Error('id column not found'))
+
+  describe 'save', ->
+    id = null
+    newValue = null
+    checkNewValue = (done) -> (result) ->
+      query = 'select * from testNoId where id = ?'
+
+      db.driver.query query, [id], (result) ->
+        if (!result.success)
+          return done(new Error(result.error))
+
+        row = result.data[0]
+
+        if (!row)
+          return done(new Error("No rows returned"))
+
+        if (row.foo == newValue)
+          return done()
+
+        done(new Error("Expected `foo` to be: #{newValue}"))
+
+    it 'should add `id` to object if it is omitted', (done) ->
+      db.save 'testNoId', { foo: 'bar' }, (result) ->
+        if (!result.success)
+          return done(new Error(result.error))
+
+        if (typeof result.data.id == 'undefined')
+          return done(new Error('`id` property missing from object'))
+
+        id = result.data.id
+        done()
+
+    it 'should replace object when saving with an existing `id`', (done) ->
+      newValue = 'newBar'
+
+      db.save 'testNoId', { id: id, foo: newValue }, checkNewValue(done)
+
+    it 'should override object values with `keys` parameter', (done) ->
+      newValue = 'overrideBar'
+      object = { id: id, foo: 'bar' }
+
+      db.save 'testNoId', object, { foo: newValue }, checkNewValue(done)
+
+    it 'should save an array of test data', (done) ->
+      insertArray testData, (err, result) ->
+        if (err)
+          return done(err)
+
+        db.get 'test', (result) ->
+          if (!result.success)
+            return done(result.error)
+
+          if (!result.data.length)
+            return done(new Error('No data after save'))
+
+          done()
