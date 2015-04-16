@@ -30,12 +30,12 @@ defaultCriteria = (criteria) ->
   return criteria
 
 class JSONStore
-  constructor: (dbFile, customDriver) ->
-    if (!dbFile?)
-      throw new Error('Missing parameter: dbFile')
+  constructor: (config, customDriver) ->
+    if (!config?)
+      throw new Error('Missing parameter: config')
 
     @driver = customDriver || new Driver()
-    @driver.init(dbFile)
+    @driver.init(config)
 
 JSONStore::createStore = (name, keys, callback) ->
   if (!name?)

@@ -5,7 +5,7 @@ describe 'JSONStore', ->
 
   describe 'constructor', ->
     it 'should reject missing `dbFile` parameter', ->
-      (-> new JSONStore()).should.throwError(/dbFile/)
+      (-> new JSONStore()).should.throwError(/config/)
 
   describe 'createStore', ->
     it 'should reject missing `name` parameter', ->
