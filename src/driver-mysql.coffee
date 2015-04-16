@@ -81,6 +81,14 @@ Driver::createStore = (name, keys, callback) ->
   multiExec(@conn, statements, callback)
 
 Driver::deleteStore = (name, callback) ->
+  statements = [
+    'START TRANSACTION'
+    "DELETE FROM __meta WHERE `store` = '#{sanitize name}'"
+    "DROP TABLE #{sanitize name}"
+    'COMMIT'
+  ]
+
+  multiExec @conn, statements, callback
 
 Driver::save = (store, object, keys, callback) -> async.waterfall [
   # Begin transaction
@@ -187,5 +195,9 @@ Driver::get = (store, criteria, callback) ->
 Driver::stream = (store, criteria, callback) ->
 
 Driver::delete = (store, criteria, callback) ->
+  params = []
+  sql = "DELETE FROM #{store}" + util.expandCriteria(criteria, sanitize, params)
+
+  @query sql, params, callback
 
 module.exports = Driver
