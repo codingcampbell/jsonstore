@@ -200,3 +200,77 @@ describe 'MySQL Driver', ->
             return done(new Error('No data after save'))
 
           done()
+
+  describe 'delete', ->
+    getItemCount = (callback) -> db.get 'test', (result) ->
+      if (!result.success)
+        return callback(result.error)
+
+      callback(null, result.data.length)
+
+    it 'should delete only the item that matches the criteria', (done) ->
+
+      async.waterfall [
+        getItemCount
+
+        (beforeCount, callback) ->
+          criteria = { where: 'name', '=': 'Mario' }
+
+          db.delete 'test', criteria, (result) ->
+            if (!result.success)
+              return callback(result.error)
+
+            getItemCount (err, afterCount) ->
+              callback(err, beforeCount, afterCount)
+
+        (beforeCount, afterCount, callback) ->
+          if (afterCount == beforeCount - 1)
+            return callback(null)
+
+          callback(new Error('Unexpected deletion count'))
+
+      ], done
+
+    it 'should delete all items when there is no criteria', (done) ->
+      async.waterfall [
+        (callback) -> db.delete 'test', (result) ->
+          if (!result.success)
+            return callback(result.error)
+
+          callback(null)
+
+        getItemCount
+
+        (count, callback) ->
+          if (count == 0)
+            return callback(null)
+
+          callback(new Error("Expected count to be 0, not #{count}"))
+
+      ], done
+
+  describe 'deleteStore', ->
+    it 'should remove key information from the __meta table', (done) ->
+      db.deleteStore 'test', (result) ->
+        if (!result.success)
+          return done(new Error(result.error))
+
+        query = "SELECT data FROM __meta WHERE `store` = 'test'"
+
+        db.driver.query query, (result) ->
+          if (!result.success)
+            return done(new Error(result.error))
+
+          row = result.data[0]
+
+          if (row && row.data)
+            return done(new Error('Data still exists in __meta table'))
+
+          done()
+
+    it 'should remove the table for the store', (done) ->
+        db.get 'test', (result) ->
+          if (result.success)
+            return done(new Error('Table still exists'))
+
+          done()
