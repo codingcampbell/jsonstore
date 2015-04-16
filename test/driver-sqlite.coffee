@@ -218,16 +218,16 @@ describe 'SQLite Driver', ->
         if (!result.success)
           return done(new Error(result.error))
 
-      query = "SELECT data FROM __meta WHERE `store` = 'test'"
+        query = "SELECT data FROM __meta WHERE `store` = 'test'"
 
-      db.driver.db.get query, (err, row) ->
-        if (err)
-          return done(new Error(err))
+        db.driver.db.get query, (err, row) ->
+          if (err)
+            return done(new Error(err))
 
-        if (row && row.data)
-          return done(new Error('Data still exists in __meta table'))
+          if (row && row.data)
+            return done(new Error('Data still exists in __meta table'))
 
-        done()
+          done()
 
     it 'should remove the table for the store', (done) ->
         db.get 'test', (result) ->
