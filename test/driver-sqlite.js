@@ -8,7 +8,7 @@ const keys = {
   id: 'number',
   name: 'string'
 };
-const keyCount = Object.keys(keys).length
+const keyCount = Object.keys(keys).length;
 const testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser'];
 
 const insertArray = (data, callback) => {
@@ -41,6 +41,10 @@ describe('SQLite Driver', () => {
     it('should create an index for each key', done => {
       let count = 0;
       const rowExists = function(err, row) {
+        if (err) {
+          return done(new Error(err));
+        }
+
         if (count < 0) {
           return;
         }
@@ -77,7 +81,7 @@ describe('SQLite Driver', () => {
           return done();
         }
 
-        done(new Error('No columns for keys: ' + keyNames.join(', ')))
+        done(new Error('No columns for keys: ' + keyNames.join(', ')));
       });
     });
 
@@ -133,7 +137,7 @@ describe('SQLite Driver', () => {
 
       db.driver.db.all('PRAGMA table_info(testNoId)', (err, rows) => {
         if (err) {
-          return done(new Error(result.error));
+          return done(new Error(err));
         }
 
         if (!rows || !rows.some) {
@@ -153,7 +157,7 @@ describe('SQLite Driver', () => {
     let id = null;
     let newValue = null;
     const checkNewValue = done => result => {
-      const query = 'select * from testNoId where id = ?'
+      const query = 'select * from testNoId where id = ?';
 
       db.driver.db.get(query, id, (err, result) => {
         if (err) {
@@ -235,7 +239,7 @@ describe('SQLite Driver', () => {
         getItemCount,
 
         (beforeCount, callback) => {
-          const criteria = { where: 'name', '=': 'Mario' }
+          const criteria = { where: 'name', '=': 'Mario' };
 
           db.delete('test', criteria, (result) => {
             if (!result.success) {
@@ -303,14 +307,13 @@ describe('SQLite Driver', () => {
     });
 
     it('should remove the table for the store', done => {
-        db.get('test', result => {
-          if (result.success) {
-            return done(new Error('Table still exists'));
-          }
+      db.get('test', result => {
+        if (result.success) {
+          return done(new Error('Table still exists'));
+        }
 
-          done();
-        });
+        done();
+      });
     });
   });
-
 });

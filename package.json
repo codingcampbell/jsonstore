@@ -13,7 +13,8 @@
     "node": ">=4.2.0"
   },
   "scripts": {
-    "test": "mocha"
+    "lint": "eslint .",
+    "test": "mocha && eslint ."
   },
   "peerDependencies": {
     "mysql": "^2.10.2",
@@ -23,6 +24,7 @@
     "async": "^1.5.2"
   },
   "devDependencies": {
+    "eslint": "^1.10.3",
     "mocha": "^2.4.5",
     "mysql": "^2.10.2",
     "should": "^8.2.1",

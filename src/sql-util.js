@@ -2,7 +2,7 @@
 
 // This module provides shared functionality for SQL-based drivers
 
-const operators = ['<', '<=', '>', '>=', '=', '!=']
+const operators = ['<', '<=', '>', '>=', '=', '!='];
 
 const buildCriteria = (criteria, sanitize, params, sub) => {
   if (criteria.where) {
@@ -69,18 +69,17 @@ const buildCriteria = (criteria, sanitize, params, sub) => {
       value += buildCriteria({ 'or': condition.or }, sanitize, params, true);
     }
 
-
     return `(\`${condition.where}\` ${op} ${value})`;
   }).join(' ' + mode.toUpperCase() + ' ') + ')';
 };
 
 // Create statements for creating an object store
 const createStore = (name, keys, sanitize, autoincrement) => {
-  let statements = [];
+  const statements = [];
+  const columns = [];
+  const meta = { keys: Object.keys(keys) };
   let sql = `CREATE TABLE \`${name}\``;
-  let columns = [];
-  let meta = { keys: Object.keys(keys) };
-  keys['__jsondata'] = 'string'
+  keys.__jsondata = 'string';
 
   Object.keys(keys).forEach(key => {
     let column = `\`${key}\` `;
@@ -106,7 +105,7 @@ const createStore = (name, keys, sanitize, autoincrement) => {
 
     // Index user-specified keys only
     if (!/^__/.test(key)) {
-      const type = (key === 'id' && 'UNIQUE' || '') + ' INDEX'
+      const type = (key === 'id' && 'UNIQUE' || '') + ' INDEX';
       statements.push(`CREATE ${type} \`idx-${name}-${key}\` ON \`${name}\`(\`${key}\`)`);
     }
   });

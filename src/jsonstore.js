@@ -4,22 +4,6 @@ const Driver = require('./driver-sqlite');
 
 const noop = function() {};
 
-const wrapCriteria = criteria => {
-  criteria = defaultCriteria(criteria);
-  if (criteria === null) {
-    return null;
-  }
-
-  if (criteria instanceof Array) {
-    if (!criteria.length) {
-      return null;
-    }
-    return criteria;
-  }
-
-  return [criteria];
-};
-
 const defaultCriteria = criteria => {
   if (criteria instanceof Array) {
     return criteria.map(defaultCriteria).filter(c => c !== null);
@@ -39,6 +23,22 @@ const defaultCriteria = criteria => {
   }
 
   return criteria;
+};
+
+const wrapCriteria = criteria => {
+  criteria = defaultCriteria(criteria);
+  if (criteria === null) {
+    return null;
+  }
+
+  if (criteria instanceof Array) {
+    if (!criteria.length) {
+      return null;
+    }
+    return criteria;
+  }
+
+  return [criteria];
 };
 
 class JSONStore {
@@ -134,7 +134,7 @@ class JSONStore {
       criteria = null;
     }
 
-    this.driver.stream(store, wrapCriteria(criteria), callback)
+    this.driver.stream(store, wrapCriteria(criteria), callback);
   }
 
   delete(store, criteria, callback) {
@@ -150,6 +150,6 @@ class JSONStore {
 
     this.driver.delete(store, wrapCriteria(criteria), callback);
   }
-};
+}
 
 module.exports = JSONStore;

@@ -11,6 +11,6 @@ class Result {
     this.success = false;
     this.error = error;
   }
-};
+}
 
 module.exports = Result;

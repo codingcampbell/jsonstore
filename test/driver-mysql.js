@@ -12,7 +12,7 @@ const config = {
   database: 'jsonstore_test'
 };
 
-let db = new JSONStore(config, new MysqlDriver());
+const db = new JSONStore(config, new MysqlDriver());
 
 const keys = {
   id: 'number',
@@ -29,7 +29,7 @@ const insertArray = (data, callback) => {
       }
 
       callback(null, result);
-    }))
+    }));
 
   async.series(inserts, callback);
 };
@@ -136,7 +136,7 @@ describe('MySQL Driver', () => {
         try {
           data = JSON.parse(row.data);
         } catch (err) {
-          return done(new Error(`Could not parse JSON: ${err}`))
+          return done(new Error(`Could not parse JSON: ${err}`));
         }
 
         if (!data || !data.keys) {
@@ -305,7 +305,7 @@ describe('MySQL Driver', () => {
 
           callback(new Error(`Expected count to be 0, not ${count}`));
         }
-      ], done)
+      ], done);
     });
   });
 

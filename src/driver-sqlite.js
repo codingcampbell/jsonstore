@@ -11,7 +11,7 @@ const sanitize = (str) => String(str).replace(/'/g, "''");
 
 // Run multiple non-prepared statements
 const multiExec = (db, statements, callback) => {
-  let result = new Result();
+  const result = new Result();
 
   if (!(statements instanceof Array)) {
     statements = [statements];
@@ -36,7 +36,7 @@ class Driver {
 
   // General query that wraps rows in a Result object
   query(query, params, callback) {
-    let result = new Result()
+    const result = new Result();
 
     if (typeof params === 'function') {
       callback = params;
@@ -55,14 +55,14 @@ class Driver {
 
   // Execute non-query statements
   exec(statement, params, callback) {
-    let result = new Result();
+    const result = new Result();
 
     if (typeof params === 'function') {
       callback = params;
       params = [];
     }
 
-    this.db.serialize(() => this.db.run(statement, params, function (err, data) {
+    this.db.serialize(() => this.db.run(statement, params, function(err, data) {
       if (!util.handleError(err, result, callback)) {
         result.success = true;
         result.data = this;
@@ -74,7 +74,7 @@ class Driver {
 
   // Get an individual store's metadata
   getMetaData(store, callback) {
-    let sql = 'SELECT data FROM __meta WHERE `store` = ?';
+    const sql = 'SELECT data FROM __meta WHERE `store` = ?';
 
     this.query(sql, [store], result => {
       let meta;
@@ -102,12 +102,12 @@ class Driver {
   }
 
   createStore(name, keys, callback) {
-    let statements = util.createStore(name, keys, sanitize);
+    const statements = util.createStore(name, keys, sanitize);
     multiExec(this.db, statements, callback);
   }
 
   deleteStore(name, callback) {
-    let statements = [
+    const statements = [
       'BEGIN',
       `DELETE FROM __meta WHERE \`store\` = '${sanitize(name)}'`,
       `DROP TABLE ${sanitize(name)}`,
@@ -133,7 +133,7 @@ class Driver {
 
       // Insert data
       (meta, callback) => {
-        let keyData = {};
+        const keyData = {};
 
         // Skim the object for top-level keys
         Object.keys(object).forEach(key => {
@@ -155,14 +155,14 @@ class Driver {
         }
 
         // Get keynames without bind prefix
-        let keyNames = Object.keys(keyData).map(key => key.slice(1));
+        const keyNames = Object.keys(keyData).map(key => key.slice(1));
 
         // Add the serialized JSON object to the row
         keyNames.push('__jsondata');
         keyData[':__jsondata'] = JSON.stringify(object);
 
         // Build insert query
-        let sql = `
+        const sql = `
           INSERT OR REPLACE INTO \`${store}\` (
             ${keyNames.map(key => `\`${key}\``).join(', ')}
           ) VALUES (
@@ -188,8 +188,8 @@ class Driver {
             return callback(result);
           }
 
-          result.data = object
-          callback(null, result)
+          result.data = object;
+          callback(null, result);
         });
       },
 
@@ -212,7 +212,7 @@ class Driver {
   }
 
   get(store, criteria, callback) {
-    let params = [];
+    const params = [];
     this.query(this.getQuery(store, criteria, params), params, result => {
       if (!result.success) {
         return callback(result);
@@ -224,18 +224,18 @@ class Driver {
       }
 
       try {
-        result.data = JSON.parse(`[${result.data.map(r => r['__jsondata']).join(',')}]`);
+        result.data = JSON.parse(`[${result.data.map(r => r.__jsondata).join(',')}]`);
       } catch (err) {
         result.setError(err);
         return callback(result);
       }
 
       callback(result);
-    })
+    });
   }
 
   stream(store, criteria, callback) {
-    let result = new Result();
+    const result = new Result();
     let currentRow = null;
 
     this.db.serialize(() => this.db.each(
@@ -248,7 +248,7 @@ class Driver {
           return callback(result);
         }
 
-        if (!row['__jsondata']) {
+        if (!row.__jsondata) {
           result.setError('No JSON data returned');
           return callback(result);
         }
@@ -260,7 +260,7 @@ class Driver {
         }
 
         try {
-          currentRow = JSON.parse(row['__jsondata'])
+          currentRow = JSON.parse(row.__jsondata);
         } catch (err) {
           result.setError(err);
           return callback(result);
@@ -282,11 +282,11 @@ class Driver {
   }
 
   delete(store, criteria, callback) {
-    let params = [];
-    let sql = `DELETE FROM ${store}` + util.expandCriteria(criteria, sanitize, params);
+    const params = [];
+    const sql = `DELETE FROM ${store}` + util.expandCriteria(criteria, sanitize, params);
 
     this.exec(sql, params, callback);
   }
-};
+}
 
 module.exports = Driver;

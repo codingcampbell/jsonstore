@@ -22,10 +22,10 @@ describe('JSONStore', () => {
     });
 
     it('should add an `id` key if it is omitted', done => {
-      let keys = { foo: 'string' };
+      const keys = { foo: 'string' };
       db.createStore('name', keys);
 
-      if (!keys.id || keys.id != 'number') {
+      if (!keys.id || keys.id !== 'number') {
         return done(new Error('id key not found'));
       }
 
