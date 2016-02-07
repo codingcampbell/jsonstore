@@ -1,32 +1,30 @@
 'use strict';
 
-const async = require('async');
 const sqlite3 = require('sqlite3');
 const Result = require('./result');
 const util = require('./sql-util');
-const noop = function() {};
 
 // Escape quotes for SQLite-compatible strings
 const sanitize = (str) => String(str).replace(/'/g, "''");
 
 // Run multiple non-prepared statements
-const multiExec = (db, statements, callback) => {
+const multiExec = (db, statements) => {
   const result = new Result();
 
   if (!(statements instanceof Array)) {
     statements = [statements];
   }
 
-  callback = callback || noop;
+  return new Promise((resolve, reject) =>
+    db.serialize(() => db.exec(statements.join('; '), error => {
+      if (util.handleError(error, result, reject)) {
+        return;
+      }
 
-  db.serialize(() => db.exec(statements.join('; '), error => {
-    if (util.handleError(error, result, callback)) {
-      return noop;
-    }
-
-    result.success = true;
-    callback(result);
-  }));
+      result.success = true;
+      resolve(result);
+    }))
+  );
 };
 
 class Driver {
@@ -35,78 +33,70 @@ class Driver {
   }
 
   // General query that wraps rows in a Result object
-  query(query, params, callback) {
+  query(query, params) {
     const result = new Result();
+    params = params || [];
 
-    if (typeof params === 'function') {
-      callback = params;
-      params = [];
-    }
+    return new Promise((resolve, reject) =>
+      this.db.serialize(() => this.db.all(query, params, (err, data) => {
+        if (!util.handleError(err, result, reject)) {
+          result.success = true;
+          result.data = data;
 
-    this.db.serialize(() => this.db.all(query, params, (err, data) => {
-      if (!util.handleError(err, result, callback)) {
-        result.success = true;
-        result.data = data;
-
-        callback(result);
-      }
-    }));
+          resolve(result);
+        }
+      }))
+    );
   }
 
   // Execute non-query statements
-  exec(statement, params, callback) {
+  exec(statement, params) {
     const result = new Result();
+    params = params || [];
 
-    if (typeof params === 'function') {
-      callback = params;
-      params = [];
-    }
+    return new Promise((resolve, reject) =>
+      this.db.serialize(() => this.db.run(statement, params, function(err) {
+        const foo = util.handleError(err, result, reject);
+        if (!foo) {
+          result.success = true;
+          result.data = this;
 
-    this.db.serialize(() => this.db.run(statement, params, function(err, data) {
-      if (!util.handleError(err, result, callback)) {
-        result.success = true;
-        result.data = this;
-
-        callback(result);
-      }
-    }));
+          resolve(result);
+        }
+      }))
+    );
   }
 
   // Get an individual store's metadata
-  getMetaData(store, callback) {
+  getMetaData(store) {
     const sql = 'SELECT data FROM __meta WHERE `store` = ?';
 
-    this.query(sql, [store], result => {
+    return this.query(sql, [store]).then(result => {
       let meta;
-
-      if (!result.success) {
-        return callback(result);
-      }
 
       if (!result.data || !result.data.length) {
         result.setError('No meta rows returned');
-        return callback(result);
+        return Promise.reject(result);
       }
 
       try {
         meta = JSON.parse(result.data[0].data);
       } catch (err) {
         result.setError(`Could not parse meta JSON: ${err}`);
-        return callback(result);
+        return Promise.reject(result);
       }
 
       result.success = true;
       result.data = meta;
-      return callback(result);
+      return result;
     });
   }
 
-  createStore(name, keys, callback) {
-    const statements = util.createStore(name, keys, sanitize);
-    multiExec(this.db, statements, callback);
+  createStore(name, keys) {
+    return multiExec(this.db, util.createStore(name, keys, sanitize));
   }
 
-  deleteStore(name, callback) {
+  deleteStore(name) {
     const statements = [
       'BEGIN',
       `DELETE FROM __meta WHERE \`store\` = '${sanitize(name)}'`,
@@ -114,123 +104,99 @@ class Driver {
       'COMMIT'
     ];
 
-    multiExec(this.db, statements, callback);
+    return multiExec(this.db, statements);
   }
 
-  save(store, object, keys, callback) {
-    return async.waterfall([
+  save(store, object, keys) {
+    return Promise.resolve().then(() => {
       // Begin transaction
-      callback => this.exec('BEGIN', () => callback(null)),
-
+      return this.exec('BEGIN');
+    }).then(() => {
       // Get key schema from metadata
-      callback => this.getMetaData(store, result => {
-        if (!result.success) {
-          return callback(result);
-        }
-
-        callback(null, result.data);
-      }),
-
+      return this.getMetaData(store);
+    }).then(result => {
       // Insert data
-      (meta, callback) => {
-        const keyData = {};
+      const meta = result.data;
+      const keyData = {};
 
-        // Skim the object for top-level keys
-        Object.keys(object).forEach(key => {
-          if (meta.keys.indexOf(key) !== -1) {
-            keyData[`:${key}`] = object[key];
+      // Skim the object for top-level keys
+      Object.keys(object).forEach(key => {
+        if (meta.keys.indexOf(key) !== -1) {
+          keyData[`:${key}`] = object[key];
+        }
+      });
+
+      // Allow keys param to override assumed key values
+      Object.keys(keys).forEach(key => {
+        if (meta.keys.indexOf(key) !== -1) {
+          keyData[`:${key}`] = keys[key];
+        }
+      });
+
+      // Make sure an overidden ID key makes it into the object
+      if (typeof keys.id !== 'undefined') {
+        object.id = keys.id;
+      }
+
+      // Get keynames without bind prefix
+      const keyNames = Object.keys(keyData).map(key => key.slice(1));
+
+      // Add the serialized JSON object to the row
+      keyNames.push('__jsondata');
+      keyData[':__jsondata'] = JSON.stringify(object);
+
+      // Build insert query
+      const sql = `
+        INSERT OR REPLACE INTO \`${store}\` (
+          ${keyNames.map(key => `\`${key}\``).join(', ')}
+        ) VALUES (
+          ${keyNames.map(key => `:${key}`).join(', ')}
+        );`;
+
+      // Execute insert statement
+      return this.exec(sql, keyData).then(result => {
+        // End transaction
+        return this.exec('COMMIT').then(() => result);
+      }).then(result => {
+        // If object does not have an ID key, we take
+        // the ID generated by SQLite, modify the object to include it,
+        // and re-save the modified object.
+        if (typeof keyData[':id'] === 'undefined') {
+          if (typeof result.data.lastID !== 'undefined') {
+            object.id = result.data.lastID;
+            return this.save(store, object, keys);
           }
-        });
 
-        // Allow keys param to override assumed key values
-        Object.keys(keys).forEach(key => {
-          if (meta.keys.indexOf(key) !== -1) {
-            keyData[`:${key}`] = keys[key];
-          }
-        });
-
-        // Make sure an overidden ID key makes it into the object
-        if (typeof keys.id !== 'undefined') {
-          object.id = keys.id;
+          result.setError('No ID key found in object or from SQLite');
+          return Promise.reject(result);
         }
 
-        // Get keynames without bind prefix
-        const keyNames = Object.keys(keyData).map(key => key.slice(1));
-
-        // Add the serialized JSON object to the row
-        keyNames.push('__jsondata');
-        keyData[':__jsondata'] = JSON.stringify(object);
-
-        // Build insert query
-        const sql = `
-          INSERT OR REPLACE INTO \`${store}\` (
-            ${keyNames.map(key => `\`${key}\``).join(', ')}
-          ) VALUES (
-            ${keyNames.map(key => `:${key}`).join(', ')}
-          );`;
-
-        // Execute insert statement
-        this.exec(sql, keyData, result => {
-          if (!result.success) {
-            return callback(result);
-          }
-
-          // If object does not have an ID key, we take
-          // the ID generated by SQLite, modify the object to include it,
-          // and re-save the modified object.
-          if (typeof keyData[':id'] === 'undefined') {
-            if (typeof result.data.lastID !== 'undefined') {
-              object.id = result.data.lastID;
-              return this.save(store, object, keys, result => callback(null, result));
-            }
-
-            result.setError('No ID key found in object or from SQLite');
-            return callback(result);
-          }
-
-          result.data = object;
-          callback(null, result);
-        });
-      },
-
-      // Process result and notify callbacks of errors
-      (result, callback) => {
-        if (!result.success) {
-          return callback(result);
-        }
-
-        callback(null, result);
-      },
-
-      // End transaction
-      (result, callback) => this.exec('COMMIT', () => callback(null, result))
-    ], (err, result) => callback(err || result));
+        result.data = object;
+        return result;
+      });
+    });
   }
 
   getQuery(store, criteria, params) {
     return `SELECT __jsondata FROM ${store}` + util.expandCriteria(criteria, sanitize, params);
   }
 
-  get(store, criteria, callback) {
+  get(store, criteria) {
     const params = [];
-    this.query(this.getQuery(store, criteria, params), params, result => {
-      if (!result.success) {
-        return callback(result);
-      }
-
+    return this.query(this.getQuery(store, criteria, params), params).then(result => {
       if (!result.data) {
         result.setError('No JSON data returned');
-        return callback(result);
+        return Promise.reject(result);
       }
 
       try {
         result.data = JSON.parse(`[${result.data.map(r => r.__jsondata).join(',')}]`);
       } catch (err) {
         result.setError(err);
-        return callback(result);
+        return Promise.reject(result);
       }
 
-      callback(result);
+      return result;
     });
   }
 
@@ -281,11 +247,11 @@ class Driver {
     ));
   }
 
-  delete(store, criteria, callback) {
+  delete(store, criteria) {
     const params = [];
     const sql = `DELETE FROM ${store}` + util.expandCriteria(criteria, sanitize, params);
 
-    this.exec(sql, params, callback);
+    return this.exec(sql, params);
   }
 }
 

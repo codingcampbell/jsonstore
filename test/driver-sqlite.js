@@ -1,7 +1,6 @@
 'use strict';
 
 const JSONStore = require('../src/jsonstore');
-const async = require('async');
 
 const db = new JSONStore(':memory:');
 const keys = {
@@ -11,38 +10,34 @@ const keys = {
 const keyCount = Object.keys(keys).length;
 const testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser'];
 
-const insertArray = (data, callback) => {
-  const inserts = data.map(name => callback =>
-    db.save('test', {name: name}, result => {
-      if (!result.success) {
-        return callback(result);
-      }
-
-      callback(null, result);
-    })
-  );
-
-  async.series(inserts, callback);
+const insertArray = data => {
+  const inserts = data.map(name => () => db.save('test', {name: name}));
+  const loop = result => inserts.length ? (inserts.shift())().then(loop) : result;
+  return loop();
 };
 
-const initDb = callback => {
-  db.createStore('test', keys, result => {
-    if (!result.success) {
-      return callback(result.error);
-    }
+const catchAll = err => {
+  if (err instanceof Error) {
+    return Promise.reject(err);
+  }
 
-    callback();
-  });
+  if (err && err.error) {
+    return Promise.reject(new Error(err.error));
+  }
+
+  return Promise.reject(new Error(err));
 };
+
+const initDb = () => db.createStore('test', keys);
 
 describe('SQLite Driver', () => {
   before(initDb);
   describe('createStore', () => {
-    it('should create an index for each key', done => {
+    it('should create an index for each key', () => new Promise((resolve, reject) => {
       let count = 0;
       const rowExists = function(err, row) {
         if (err) {
-          return done(new Error(err));
+          return reject(new Error(err));
         }
 
         if (count < 0) {
@@ -53,13 +48,13 @@ describe('SQLite Driver', () => {
           // Only throw error if this key was not user-specified
           if (!/^__/.test(this)) {
             count = -1;
-            return done(new Error(`No index for key: ${this}`));
+            return reject(new Error(`No index for key: ${this}`));
           }
         }
 
         count += 1;
         if (count === keyCount) {
-          done();
+          resolve();
         }
       };
 
@@ -67,39 +62,39 @@ describe('SQLite Driver', () => {
         const query = `SELECT * FROM sqlite_master WHERE \`name\` = 'idx-test-${key}'`;
         db.driver.db.get(query, rowExists.bind(key));
       });
-    });
+    }).catch(catchAll));
 
-    it('should create a column for each key', done => {
+    it('should create a column for each key', () => new Promise((resolve, reject) => {
       db.driver.db.all('PRAGMA table_info(test)', (err, rows) => {
         if (err) {
-          return done(new Error(err));
+          return reject(new Error(err));
         }
 
         const keyNames = Object.keys(keys).filter(key => !rows.some(row => row.name === key));
 
         if (!keyNames.length) {
-          return done();
+          return resolve();
         }
 
-        done(new Error('No columns for keys: ' + keyNames.join(', ')));
+        reject(new Error('No columns for keys: ' + keyNames.join(', ')));
       });
-    });
+    }).catch(catchAll));
 
-    it('should create a __meta table if one does not exist', done => {
+    it('should create a __meta table if one does not exist', () => new Promise((resolve, reject) => {
       db.driver.db.all('PRAGMA table_info(__meta)', (err, rows) => {
         if (err) {
-          return done(new Error(err));
+          return reject(new Error(err));
         }
 
         if (!rows || !rows.length) {
-          return done(new Error('No __meta table found'));
+          return reject(new Error('No __meta table found'));
         }
 
-        done();
+        resolve();
       });
-    });
+    }).catch(catchAll));
 
-    it('should store key information in the __meta table', done => {
+    it('should store key information in the __meta table', () => new Promise((resolve, reject) => {
       const query = "SELECT data FROM __meta WHERE `store` = 'test'";
 
       db.driver.db.get(query, (err, row) => {
@@ -107,213 +102,173 @@ describe('SQLite Driver', () => {
         let data;
 
         if (err) {
-          return done(new Error(err));
+          return reject(new Error(err));
         }
 
         try {
           data = JSON.parse(row.data);
         } catch (err) {
-          return done(new Error(`Could not parse JSON: ${err}`));
+          return reject(new Error(`Could not parse JSON: ${err}`));
         }
 
         if (!data || !data.keys) {
-          return done(new Error('Could not find key data'));
+          return reject(new Error('Could not find key data'));
         }
 
         if (keyNames.join(',') !== data.keys.join(',')) {
-          return done(new Error('Key data does not match'));
+          return reject(new Error('Key data does not match'));
         }
 
-        done();
+        resolve();
       });
-    });
+    }).catch(catchAll));
 
-    it('should create an `id` key/column if it is omitted', done => {
-      db.createStore('testNoId', { foo: 'string' }, result => {
-        if (!result.success) {
-          return done(new Error(result.error));
-        }
-      });
+    it('should create an `id` key/column if it is omitted', () => {
+      return db.createStore('testNoId', { foo: 'string' }).then(() => new Promise((resolve, reject) => {
+        db.driver.db.all('PRAGMA table_info(testNoId)', (err, rows) => {
+          if (err) {
+            return reject(new Error(err));
+          }
 
-      db.driver.db.all('PRAGMA table_info(testNoId)', (err, rows) => {
-        if (err) {
-          return done(new Error(err));
-        }
+          if (!rows || !rows.some) {
+            return reject(new Error('No columns found'));
+          }
 
-        if (!rows || !rows.some) {
-          return done(new Error('No columns found'));
-        }
+          if (rows.some(row => row.name === 'id')) {
+            return resolve();
+          }
 
-        if (rows.some(row => row.name === 'id')) {
-          return done();
-        }
-
-        done(new Error('id column not found'));
-      });
+          reject(new Error('id column not found'));
+        });
+      })).catch(catchAll);
     });
   });
 
   describe('save', () => {
     let id = null;
     let newValue = null;
-    const checkNewValue = done => result => {
+    const checkNewValue = () => {
       const query = 'select * from testNoId where id = ?';
 
-      db.driver.db.get(query, id, (err, result) => {
-        if (err) {
-          return done(new Error(err));
-        }
+      return new Promise((resolve, reject) => {
+        db.driver.db.get(query, id, (err, result) => {
+          if (err) {
+            return reject(new Error(err));
+          }
 
-        if (!result) {
-          return done(new Error("No rows returned"));
-        }
+          if (!result) {
+            return reject(new Error("No rows returned"));
+          }
 
-        if (result.foo === newValue) {
-          return done();
-        }
+          if (result.foo === newValue) {
+            return resolve();
+          }
 
-        done(new Error(`Expected \`foo\` to be: ${newValue}`));
-      });
+          reject(new Error(`Expected \`foo\` to be: ${newValue}`));
+        });
+      }).catch(catchAll);
     };
 
-    it('should add `id` to object if it is omitted', done => {
-      db.save('testNoId', { foo: 'bar' }, (result) => {
+    it('should add `id` to object if it is omitted', () => {
+      return db.save('testNoId', { foo: 'bar' }).then(result => {
         if (!result.success) {
-          return done(new Error(result.error));
+          return Promise.reject(new Error(result.error));
         }
 
         if (typeof result.data.id === 'undefined') {
-          return done(new Error('`id` property missing from object'));
+          return Promise.reject(new Error('`id` property missing from object'));
         }
 
         id = result.data.id;
-        done();
-      });
+      }).catch(catchAll);
     });
 
-    it('should replace object when saving with an existing `id`', done => {
+    it('should replace object when saving with an existing `id`', () => {
       newValue = 'newBar';
-
-      db.save('testNoId', { id: id, foo: newValue }, checkNewValue(done));
+      return db.save('testNoId', { id, foo: newValue })
+        .then(checkNewValue)
+        .catch(catchAll);
     });
 
-    it('should override object values with `keys` parameter', done => {
+    it('should override object values with `keys` parameter', () => {
       newValue = 'overrideBar';
-      const object = { id: id, foo: 'bar' };
+      const object = { id, foo: 'bar' };
 
-      db.save('testNoId', object, { foo: newValue }, checkNewValue(done));
+      return db.save('testNoId', object, { foo: newValue })
+        .then(checkNewValue)
+        .catch(catchAll);
     });
 
-    it('should save an array of test data', done => {
-      insertArray(testData, (err, result) => {
-        if (err) {
-          return done(err);
-        }
-
-        db.get('test', result => {
-          if (!result.success) {
-            return done(result.error);
-          }
-
+    it('should save an array of test data', () => {
+      return insertArray(testData)
+        .then(() => db.get('test'))
+        .then(result => {
           if (!result.data.length) {
-            return done(new Error('No data after save'));
+            return Promise.reject(new Error('No data after save'));
           }
 
-          done();
-        });
-      });
+          return result;
+        })
+        .catch(catchAll);
     });
   });
 
   describe('delete', () => {
-    const getItemCount = callback => db.get('test', result => {
-      if (!result.success) {
-        return callback(result.error);
-      }
+    const getItemCount = () => db.get('test').then(result => result.data.length);
 
-      callback(null, result.data.length);
-    });
-
-    it('should delete only the item that matches the criteria', done => {
-      async.waterfall([
-        getItemCount,
-
-        (beforeCount, callback) => {
+    it('should delete only the item that matches the criteria', () => {
+      return getItemCount()
+        .then(beforeCount => {
           const criteria = { where: 'name', '=': 'Mario' };
 
-          db.delete('test', criteria, (result) => {
-            if (!result.success) {
-              return callback(result.error);
-            }
+          return db.delete('test', criteria)
+            .then(getItemCount)
+            .then(afterCount => {
+              if (afterCount === beforeCount - 1) {
+                return;
+              }
 
-            getItemCount((err, afterCount) => callback(err, beforeCount, afterCount));
-          });
-        },
-
-        (beforeCount, afterCount, callback) => {
-          if (afterCount === beforeCount - 1) {
-            return callback(null);
-          }
-
-          callback(new Error('Unexpected deletion count'));
-        },
-      ], done);
+              return Promise.reject(new Error('Unexpected deletion count'));
+            });
+        })
+        .catch(catchAll);
     });
 
-    it('should delete all items when there is no criteria', done => {
-      async.waterfall([
-        callback => db.delete('test', result => {
-          if (!result.success) {
-            return callback(result.error);
-          }
-
-          callback(null);
-        }),
-
-        getItemCount,
-
-        (count, callback) => {
+    it('should delete all items when there is no criteria', () => {
+      return db.delete('test')
+        .then(getItemCount)
+        .then(count => {
           if (count === 0) {
-            return callback(null);
+            return;
           }
 
-          callback(new Error(`Expected count to be 0, not ${count}`));
-        }
-      ], done);
+          return Promise.reject(new Error(`Expected count to be 0, not ${count}`));
+        })
+        .catch(catchAll);
     });
   });
 
   describe('deleteStore', () => {
-    it('should remove key information from the __meta table', done => {
-      db.deleteStore('test', result => {
-        if (!result.success) {
-          return done(new Error(result.error));
-        }
-
+    it('should remove key information from the __meta table', () => {
+      return db.deleteStore('test').then(() => {
         const query = "SELECT data FROM __meta WHERE `store` = 'test'";
 
         db.driver.db.get(query, (err, row) => {
           if (err) {
-            return done(new Error(err));
+            return Promise.reject(new Error(err));
           }
 
           if (row && row.data) {
-            return done(new Error('Data still exists in __meta table'));
+            return Promise.reject(new Error('Data still exists in __meta table'));
           }
-
-          done();
         });
-      });
+      }).catch(catchAll);
     });
 
-    it('should remove the table for the store', done => {
-      db.get('test', result => {
-        if (result.success) {
-          return done(new Error('Table still exists'));
-        }
-
-        done();
-      });
+    it('should remove the table for the store', () => {
+      return db.get('test')
+        .then(() => Promise.reject(new Error('Table still exists')))
+        .catch(() => Promise.resolve());
     });
   });
 });

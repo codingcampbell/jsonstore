@@ -21,15 +21,14 @@ describe('JSONStore', () => {
       (() => db.createStore('name')).should.throwError(/keys/);
     });
 
-    it('should add an `id` key if it is omitted', done => {
+    it('should add an `id` key if it is omitted', () => {
       const keys = { foo: 'string' };
-      db.createStore('name', keys);
-
-      if (!keys.id || keys.id !== 'number') {
-        return done(new Error('id key not found'));
-      }
-
-      done();
+      return db.createStore('name', keys)
+        .then(() => {
+          if (!keys.id || keys.id !== 'number') {
+            return Promise.reject(new Error('id key not found'));
+          }
+        });
     });
   });
 

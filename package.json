@@ -1,6 +1,6 @@
 {
   "name": "jsonstore",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "JSON store on top of SQLite",
   "main": "./src/jsonstore",
   "author": "Matt Campbell <matt@mattcampbell.net>",
@@ -19,9 +19,6 @@
   "peerDependencies": {
     "mysql": "^2.10.2",
     "sqlite3": "^3.1.1"
-  },
-  "dependencies": {
-    "async": "^1.5.2"
   },
   "devDependencies": {
     "eslint": "^1.10.3",

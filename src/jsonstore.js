@@ -2,8 +2,6 @@
 
 const Driver = require('./driver-sqlite');
 
-const noop = function() {};
-
 const defaultCriteria = criteria => {
   if (criteria instanceof Array) {
     return criteria.map(defaultCriteria).filter(c => c !== null);
@@ -51,7 +49,7 @@ class JSONStore {
     this.driver.init(config);
   }
 
-  createStore(name, keys, callback) {
+  createStore(name, keys) {
     if (!name) {
       throw new Error('Missing parameter: name');
     }
@@ -59,8 +57,6 @@ class JSONStore {
     if (!keys) {
       throw new Error('Missing parameter: keys');
     }
-
-    callback = callback || noop;
 
     Object.keys(keys).forEach(key => {
       keys[key] = String(keys[key]).toLowerCase();
@@ -71,20 +67,18 @@ class JSONStore {
     });
 
     keys.id = keys.id || 'number';
-    this.driver.createStore(String(name), keys, callback);
+    return this.driver.createStore(String(name), keys);
   }
 
-  deleteStore(name, callback) {
+  deleteStore(name) {
     if (!name) {
       throw new Error('Missing parameter: name');
     }
 
-    callback = callback || noop;
-
-    this.driver.deleteStore(String(name), callback);
+    return this.driver.deleteStore(String(name));
   }
 
-  save(store, object, keys, callback) {
+  save(store, object, keys) {
     if (typeof store !== 'string') {
       throw new Error('Missing parameter: store (expected a string)');
     }
@@ -93,32 +87,17 @@ class JSONStore {
       throw new Error('Missing parameter: object');
     }
 
-    // `Keys` param is optional, omitting it means callback takes its place
-    if (typeof keys === 'function') {
-      callback = keys;
-      keys = {};
-    }
-
     keys = keys || {};
-    callback = callback || noop;
 
-    this.driver.save(store, object, keys, callback);
+    return this.driver.save(store, object, keys);
   }
 
-  get(store, criteria, callback) {
+  get(store, criteria) {
     if (typeof store !== 'string') {
       throw new Error('Missing parameter: store (expected a string)');
     }
 
-    // If `criteria` is a function, the parameter was omitted
-    if (typeof criteria === 'function') {
-      callback = criteria;
-      criteria = null;
-    }
-
-    callback = callback || noop;
-
-    this.driver.get(store, wrapCriteria(criteria), callback);
+    return this.driver.get(store, wrapCriteria(criteria));
   }
 
   // Same as `get`, except results are streamed back one row at
@@ -134,21 +113,20 @@ class JSONStore {
       criteria = null;
     }
 
-    this.driver.stream(store, wrapCriteria(criteria), callback);
+    return this.driver.stream(store, wrapCriteria(criteria), callback);
   }
 
-  delete(store, criteria, callback) {
+  delete(store, criteria) {
     if (typeof store !== 'string') {
       throw new Error('Missing parameter: store (expected a string)');
     }
 
     // If `criteria` is a function, the parameter was omitted
     if (typeof criteria === 'function') {
-      callback = criteria;
       criteria = null;
     }
 
-    this.driver.delete(store, wrapCriteria(criteria), callback);
+    return this.driver.delete(store, wrapCriteria(criteria));
   }
 }
 

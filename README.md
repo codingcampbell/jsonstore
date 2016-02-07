@@ -22,7 +22,7 @@ Requirements:
 API rough draft
 ====
 
-api.createStore(name, keys, callback) - Create a 'store' (collection of objects)
+api.createStore(name, keys) - Create a 'store' (collection of objects)
 ---
 
 Parameters:
@@ -30,10 +30,9 @@ Parameters:
 - `name` {string} - Name of store (maps to table name)
 - `keys` {object} - Set of name/type. Type can be `number` or `string` (default)
 -- E.g. `{ id: 'number', name: 'string' }`
-- `callback` {function} - Called with a `Result`
 
 
-api.save(object, store, keys, callback) - Save an object to a store
+api.save(object, store, keys) - Save an object to a store
 ---
 
 Parameters:
@@ -41,7 +40,6 @@ Parameters:
 - `object` {object} - JSON-serializable object
 - `store` {string} - Name of object store
 - `keys` {object} - (Optional) set of key/values to override keys from `object`
-- `callback` {function} - Called with a `Result` argument
 
 By default, keys on the top-level of `object` will automatically be saved to
 their indexed columns in the database (if they were declared in `createStore`).
@@ -64,14 +62,13 @@ You can specify your own IDs (and you can set `id` to be a `string`). If you
 choose to use a non-numeric ID and do not include it in your object, the
 database will throw an error about rejecting your NULL ID.
 
-api.get(store, criteria, callback) - Query an object store
+api.get(store, criteria) - Query an object store
 ---
 
 Parameters:
 
 - `store` {string} - Name of object store
 - `criteria` {object | array<object>} - List of criteria (see below)
-- `callback` {function} - Called with a `Result` argument
 
 Criteria is an object (or array of objects) that defines what is
 essentially a `WHERE` clause in SQL terms.
@@ -115,7 +112,7 @@ Find all users who are 18 or 21
 
 Result objects
 ===
-All callbacks from the database include a `Result` object.
+All functions are Promises that are resolved or rejected with a `Result` object.
 No matter what operation, a `Result` object will always have a boolean
 `success` property. Any problems will be logged in an `error` property.
 
