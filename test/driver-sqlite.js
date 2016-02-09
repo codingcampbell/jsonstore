@@ -1,32 +1,16 @@
 'use strict';
 
+const util = require('./test-util');
 const JSONStore = require('../src/jsonstore');
 
 const db = new JSONStore(':memory:');
+
 const keys = {
   id: 'number',
   name: 'string'
 };
+
 const keyCount = Object.keys(keys).length;
-const testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser'];
-
-const insertArray = data => {
-  const inserts = data.map(name => () => db.save('test', {name: name}));
-  const loop = result => inserts.length ? (inserts.shift())().then(loop) : result;
-  return loop();
-};
-
-const catchAll = err => {
-  if (err instanceof Error) {
-    return Promise.reject(err);
-  }
-
-  if (err && err.error) {
-    return Promise.reject(new Error(err.error));
-  }
-
-  return Promise.reject(new Error(err));
-};
 
 const initDb = () => db.createStore('test', keys);
 
@@ -62,7 +46,7 @@ describe('SQLite Driver', () => {
         const query = `SELECT * FROM sqlite_master WHERE \`name\` = 'idx-test-${key}'`;
         db.driver.db.get(query, rowExists.bind(key));
       });
-    }).catch(catchAll));
+    }).catch(util.catchAll));
 
     it('should create a column for each key', () => new Promise((resolve, reject) => {
       db.driver.db.all('PRAGMA table_info(test)', (err, rows) => {
@@ -78,7 +62,7 @@ describe('SQLite Driver', () => {
 
         reject(new Error('No columns for keys: ' + keyNames.join(', ')));
       });
-    }).catch(catchAll));
+    }).catch(util.catchAll));
 
     it('should create a __meta table if one does not exist', () => new Promise((resolve, reject) => {
       db.driver.db.all('PRAGMA table_info(__meta)', (err, rows) => {
@@ -92,7 +76,7 @@ describe('SQLite Driver', () => {
 
         resolve();
       });
-    }).catch(catchAll));
+    }).catch(util.catchAll));
 
     it('should store key information in the __meta table', () => new Promise((resolve, reject) => {
       const query = "SELECT data FROM __meta WHERE `store` = 'test'";
@@ -121,7 +105,7 @@ describe('SQLite Driver', () => {
 
         resolve();
       });
-    }).catch(catchAll));
+    }).catch(util.catchAll));
 
     it('should create an `id` key/column if it is omitted', () => {
       return db.createStore('testNoId', { foo: 'string' }).then(() => new Promise((resolve, reject) => {
@@ -140,7 +124,7 @@ describe('SQLite Driver', () => {
 
           reject(new Error('id column not found'));
         });
-      })).catch(catchAll);
+      })).catch(util.catchAll);
     });
   });
 
@@ -166,7 +150,7 @@ describe('SQLite Driver', () => {
 
           reject(new Error(`Expected \`foo\` to be: ${newValue}`));
         });
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     };
 
     it('should add `id` to object if it is omitted', () => {
@@ -180,14 +164,14 @@ describe('SQLite Driver', () => {
         }
 
         id = result.data.id;
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should replace object when saving with an existing `id`', () => {
       newValue = 'newBar';
       return db.save('testNoId', { id, foo: newValue })
         .then(checkNewValue)
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
 
     it('should override object values with `keys` parameter', () => {
@@ -196,11 +180,11 @@ describe('SQLite Driver', () => {
 
       return db.save('testNoId', object, { foo: newValue })
         .then(checkNewValue)
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
 
     it('should save an array of test data', () => {
-      return insertArray(testData)
+      return util.insertArray(db, util.testData)
         .then(() => db.get('test'))
         .then(result => {
           if (!result.data.length) {
@@ -209,7 +193,7 @@ describe('SQLite Driver', () => {
 
           return result;
         })
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
   });
 
@@ -231,7 +215,7 @@ describe('SQLite Driver', () => {
               return Promise.reject(new Error('Unexpected deletion count'));
             });
         })
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
 
     it('should delete all items when there is no criteria', () => {
@@ -244,7 +228,7 @@ describe('SQLite Driver', () => {
 
           return Promise.reject(new Error(`Expected count to be 0, not ${count}`));
         })
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
   });
 
@@ -262,7 +246,7 @@ describe('SQLite Driver', () => {
             return Promise.reject(new Error('Data still exists in __meta table'));
           }
         });
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should remove the table for the store', () => {

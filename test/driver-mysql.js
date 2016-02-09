@@ -1,5 +1,6 @@
 'use strict';
 
+const util = require('./test-util');
 const mysql = require('mysql');
 const JSONStore = require('../src/jsonstore');
 const MysqlDriver = require('../src/driver-mysql');
@@ -16,26 +17,6 @@ const db = new JSONStore(config, new MysqlDriver());
 const keys = {
   id: 'number',
   name: 'string'
-};
-
-const testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser'];
-
-const insertArray = data => {
-  const inserts = data.map(name => () => db.save('test', {name: name}));
-  const loop = result => inserts.length ? (inserts.shift())().then(loop) : result;
-  return loop();
-};
-
-const catchAll = err => {
-  if (err instanceof Error) {
-    return Promise.reject(err);
-  }
-
-  if (err && err.error) {
-    return Promise.reject(new Error(err.error));
-  }
-
-  return Promise.reject(new Error(err));
 };
 
 const initDb = () => {
@@ -60,7 +41,7 @@ const initDb = () => {
   }).then(() => {
     // Create object store
     return db.createStore('test', keys);
-  }).catch(catchAll);
+  }).catch(util.catchAll);
 };
 
 describe('MySQL Driver', () => {
@@ -86,7 +67,7 @@ describe('MySQL Driver', () => {
             return Promise.reject(new Error(`No index for key: ${key}`));
           }
         });
-      })).catch(catchAll);
+      })).catch(util.catchAll);
     });
 
     it('should create a column for each key', () => {
@@ -99,7 +80,7 @@ describe('MySQL Driver', () => {
         }
 
         return Promise.reject(new Error('No columns for keys: ' + keyNames.join(', ')));
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should create a __meta table if one does not exist', () => {
@@ -109,7 +90,7 @@ describe('MySQL Driver', () => {
         if (!hasTable) {
           return Promise.reject(new Error('No __meta table found'));
         }
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should store key information in the __meta table', () => {
@@ -131,7 +112,7 @@ describe('MySQL Driver', () => {
         if (keyNames.join(',') !== data.keys.join(',')) {
           return Promise.reject(new Error('Key data does not match'));
         }
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should create an `id` key/column if it is omitted', () => {
@@ -148,7 +129,7 @@ describe('MySQL Driver', () => {
             return Promise.reject(new Error('id column not found'));
           }
         })
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
   });
 
@@ -168,7 +149,7 @@ describe('MySQL Driver', () => {
         if (row.foo !== newValue) {
           return Promise.reject(new Error(`Expected \`foo\` to be: ${newValue}`));
         }
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     };
 
     it('should add `id` to object if it is omitted', () => {
@@ -178,29 +159,29 @@ describe('MySQL Driver', () => {
         }
 
         id = result.data.id;
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should replace object when saving with an existing `id`', () => {
       newValue = 'newBar';
-      return db.save('testNoId', { id, foo: newValue }, checkNewValue).catch(catchAll);
+      return db.save('testNoId', { id, foo: newValue }, checkNewValue).catch(util.catchAll);
     });
 
     it('should override object values with `keys` parameter', () => {
       newValue = 'overrideBar';
       const object = { id: id, foo: 'bar' };
 
-      return db.save('testNoId', object, { foo: newValue }, checkNewValue).catch(catchAll);
+      return db.save('testNoId', object, { foo: newValue }, checkNewValue).catch(util.catchAll);
     });
 
     it('should save an array of test data', () => {
-      return insertArray(testData).then(() => {
+      return util.insertArray(db, util.testData).then(() => {
         return db.get('test').then(result => {
           if (!result.data.length) {
             return Promise.reject(new Error('No data after save'));
           }
         });
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
   });
 
@@ -218,7 +199,7 @@ describe('MySQL Driver', () => {
               return Promise.reject(new Error('Unexpected deletion count'));
             }
           });
-      }).catch(catchAll);
+      }).catch(util.catchAll);
     });
 
     it('should delete all items when there is no criteria', () => {
@@ -229,7 +210,7 @@ describe('MySQL Driver', () => {
             return Promise.reject(new Error(`Expected count to be 0, not ${count}`));
           }
         })
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
   });
 
@@ -244,7 +225,7 @@ describe('MySQL Driver', () => {
             return Promise.reject(new Error('Data still exists in __meta table'));
           }
         })
-        .catch(catchAll);
+        .catch(util.catchAll);
     });
 
     it('should remove the table for the store', () => {
