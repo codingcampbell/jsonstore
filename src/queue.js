@@ -2,14 +2,33 @@
 
 class Queue {
   constructor() {
-    this.queue = [Promise.resolve()];
+    this.queue = [];
+    this.waiting = false;
   }
 
-  wait(fn) {
-    const task = this.queue[0].then(() => this.queue.pop()).then(fn);
-    this.queue.unshift(task);
+  dequeue() {
+    if (this.waiting || !this.queue.length) {
+      return;
+    }
 
-    return task;
+    this.waiting = true;
+    this.queue.shift().call(this, function() {
+      this.waiting = false;
+      this.dequeue();
+    }.bind(this));
+  }
+
+  enqueue(callback) {
+    this.queue.push(callback);
+    this.dequeue();
+  }
+
+  wait(promiseFn) {
+    return new Promise((resolve, reject) =>
+      this.enqueue(done =>
+        promiseFn().then(x => { done(x); return resolve(x); }).catch(x => { done(x); return reject(x); })
+      )
+    );
   }
 }
 
