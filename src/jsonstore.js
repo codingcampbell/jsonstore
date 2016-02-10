@@ -1,6 +1,7 @@
 'use strict';
 
 const Driver = require('./driver-sqlite');
+const Queue = require('./queue');
 
 const defaultCriteria = criteria => {
   if (criteria instanceof Array) {
@@ -45,6 +46,7 @@ class JSONStore {
       throw new Error('Missing parameter: config');
     }
 
+    this.queue = new Queue();
     this.driver = customDriver || new Driver();
     this.driver.init(config);
   }
@@ -67,7 +69,7 @@ class JSONStore {
     });
 
     keys.id = keys.id || 'number';
-    return this.driver.createStore(String(name), keys);
+    return this.queue.wait(() => this.driver.createStore(String(name), keys));
   }
 
   deleteStore(name) {
@@ -75,7 +77,7 @@ class JSONStore {
       throw new Error('Missing parameter: name');
     }
 
-    return this.driver.deleteStore(String(name));
+    return this.queue.wait(() => this.driver.deleteStore(String(name)));
   }
 
   save(store, object, keys) {
@@ -89,7 +91,7 @@ class JSONStore {
 
     keys = keys || {};
 
-    return this.driver.save(store, object, keys);
+    return this.queue.wait(() => this.driver.save(store, object, keys));
   }
 
   get(store, criteria) {
@@ -97,7 +99,7 @@ class JSONStore {
       throw new Error('Missing parameter: store (expected a string)');
     }
 
-    return this.driver.get(store, wrapCriteria(criteria));
+    return this.queue.wait(() => this.driver.get(store, wrapCriteria(criteria)));
   }
 
   // Same as `get`, except results are streamed back one row at
@@ -113,7 +115,19 @@ class JSONStore {
       criteria = null;
     }
 
-    return this.driver.stream(store, wrapCriteria(criteria), callback);
+    return this.queue.wait(() => new Promise((resolve, reject) => {
+      this.driver.stream(store, wrapCriteria(criteria), (result, lastRow, numRows) => {
+        callback(result, lastRow, numRows);
+
+        if (!result.success) {
+          return reject(result);
+        }
+
+        if (lastRow) {
+          resolve(result);
+        }
+      });
+    }));
   }
 
   delete(store, criteria) {

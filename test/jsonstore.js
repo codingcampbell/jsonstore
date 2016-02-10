@@ -1,7 +1,9 @@
 'use strict';
 
 require('should');
+const util = require('./test-util');
 const JSONStore = require('../src/jsonstore');
+const testData = ['Mario', 'Luigi', 'Peach', 'Toad', 'Bowser'];
 
 describe('JSONStore', () => {
   const db = new JSONStore(':memory:');
@@ -39,6 +41,15 @@ describe('JSONStore', () => {
 
     it('should reject missing `object` parameter', () => {
       (() => db.save('store')).should.throwError(/object/);
+    });
+
+    it('should queue multiple calls to run one at a time', () => {
+      return db.createStore('people', { name: 'string' }).then(() => {
+        return Promise.all(testData.map(person => db.save('people', { name: person })));
+      })
+      .then(() => db.get('people'))
+      .then(result => result.data.length.should.equal(util.testData.length))
+      .catch(util.catchAll);
     });
   });
 });

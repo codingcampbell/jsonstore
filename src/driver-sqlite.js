@@ -56,8 +56,7 @@ class Driver {
 
     return new Promise((resolve, reject) =>
       this.db.serialize(() => this.db.run(statement, params, function(err) {
-        const foo = util.handleError(err, result, reject);
-        if (!foo) {
+        if (!util.handleError(err, result, reject)) {
           result.success = true;
           result.data = this;
 
