@@ -7,6 +7,12 @@ const util = require('./sql-util');
 // Escape quotes for SQLite-compatible strings
 const sanitize = (str) => String(str).replace(/'/g, "''");
 
+const rollbackOnError = (db, error, result, callback) => {
+  return util.handleError(error, result, () =>
+    db.exec('ROLLBACK', () => callback(result))
+  );
+};
+
 // Run multiple non-prepared statements
 const multiExec = (db, statements) => {
   const result = new Result();
@@ -17,7 +23,7 @@ const multiExec = (db, statements) => {
 
   return new Promise((resolve, reject) =>
     db.serialize(() => db.exec(statements.join('; '), error => {
-      if (util.handleError(error, result, reject)) {
+      if (rollbackOnError(db, error, result, reject)) {
         return;
       }
 

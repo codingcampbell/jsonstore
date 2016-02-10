@@ -7,6 +7,12 @@ const util = require('./sql-util');
 // Escape quotes for MySQL-compatible strings
 const sanitize = str => String(str).replace(/'/g, "\\'");
 
+const rollbackOnError = (db, error, result, callback) => {
+  return util.handleError(error, result, () =>
+    db.query('ROLLBACK', () => callback(result))
+  );
+};
+
 // Run multiple non-prepared statements
 const multiExec = (db, statements) => {
   const result = new Result();
@@ -20,7 +26,7 @@ const multiExec = (db, statements) => {
   }));
 
   const loop = result => statements.length ? (statements.shift())().then(loop) : result;
-  return loop().catch(err => util.handleError(err, result, finalResult => Promise.reject(finalResult)));
+  return loop().catch(err => rollbackOnError(db, err, result, finalResult => Promise.reject(finalResult)));
 };
 
 class Driver {
