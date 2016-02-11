@@ -38,6 +38,10 @@ class Driver {
     this.db = new sqlite3.Database(dbFile);
   }
 
+  close() {
+    return new Promise((resolve, reject) => this.db.close(err => err ? reject(err) : resolve()));
+  }
+
   // General query that wraps rows in a Result object
   query(query, params) {
     const result = new Result();

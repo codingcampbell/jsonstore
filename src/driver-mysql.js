@@ -39,6 +39,10 @@ class Driver {
     this.conn = mysql.createConnection(this.config);
   }
 
+  close() {
+    return new Promise((resolve, reject) => this.conn.end(err => err ? reject(err) : resolve()));
+  }
+
   // General query that wraps rows in a Result object
   query(query, params) {
     const result = new Result();

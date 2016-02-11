@@ -51,6 +51,10 @@ class JSONStore {
     this.driver.init(config);
   }
 
+  close() {
+    return this.driver.close();
+  }
+
   createStore(name, keys) {
     if (!name) {
       throw new Error('Missing parameter: name');
