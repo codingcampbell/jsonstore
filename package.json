@@ -1,6 +1,6 @@
 {
   "name": "jsonstore",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "JSON store on top of SQLite",
   "main": "./src/jsonstore",
   "author": "Matt Campbell <matt@mattcampbell.net>",

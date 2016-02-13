@@ -275,7 +275,6 @@ class Driver {
   }
 
   transactionBegin() {
-    this.transactionIsOpen = true;
     return this.exec('BEGIN').then(() => { this.transactionIsOpen = true; });
   }
 

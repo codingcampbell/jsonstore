@@ -220,7 +220,6 @@ class Driver {
   }
 
   transactionBegin() {
-    this.transactionIsOpen = true;
     return this.query('START TRANSACTION').then(() => { this.transactionIsOpen = true; });
   }
 

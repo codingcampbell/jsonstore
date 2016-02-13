@@ -32,13 +32,13 @@ Parameters:
 -- E.g. `{ id: 'number', name: 'string' }`
 
 
-api.save(object, store, keys) - Save an object to a store
+api.save(store, object, keys) - Save an object to a store
 ---
 
 Parameters:
 
-- `object` {object} - JSON-serializable object
 - `store` {string} - Name of object store
+- `object` {object | array<object>} - JSON-serializable object
 - `keys` {object} - (Optional) set of key/values to override keys from `object`
 
 By default, keys on the top-level of `object` will automatically be saved to

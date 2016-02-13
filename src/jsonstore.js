@@ -95,6 +95,12 @@ class JSONStore {
 
     keys = keys || {};
 
+    if (object.constructor === Array) {
+      return this.transactionBegin()
+        .then(() => Promise.all(object.map(item => this.save(store, item, keys))))
+        .then(result => this.transactionCommit().then(() => result));
+    }
+
     return this.queue.wait(() => this.driver.save(store, object, keys));
   }
 
