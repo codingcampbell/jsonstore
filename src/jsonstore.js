@@ -146,6 +146,18 @@ class JSONStore {
 
     return this.driver.delete(store, wrapCriteria(criteria));
   }
+
+  transactionBegin() {
+    return this.queue.wait(() => this.driver.transactionBegin());
+  }
+
+  transactionCommit() {
+    return this.queue.wait(() => this.driver.transactionCommit());
+  }
+
+  transactionRollback() {
+    return this.queue.wait(() => this.driver.transactionRollback());
+  }
 }
 
 module.exports = JSONStore;

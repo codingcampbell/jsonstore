@@ -36,6 +36,7 @@ const multiExec = (db, statements) => {
 class Driver {
   init(dbFile) {
     this.db = new sqlite3.Database(dbFile);
+    this.transactionIsOpen = false;
   }
 
   close() {
@@ -118,6 +119,11 @@ class Driver {
 
   save(store, object, keys) {
     return Promise.resolve().then(() => {
+      if (this.transactionIsOpen) {
+        // A manually-opened transaction is already in progress
+        return;
+      }
+
       // Begin transaction
       return this.exec('BEGIN');
     }).then(() => {
@@ -164,6 +170,11 @@ class Driver {
 
       // Execute insert statement
       return this.exec(sql, keyData).then(result => {
+        if (this.transactionIsOpen) {
+          // A manually-opened transaction must also be closed manually
+          return result;
+        }
+
         // End transaction
         return this.exec('COMMIT').then(() => result);
       }).then(result => {
@@ -261,6 +272,28 @@ class Driver {
     const sql = `DELETE FROM ${store}` + util.expandCriteria(criteria, sanitize, params);
 
     return this.exec(sql, params);
+  }
+
+  transactionBegin() {
+    this.transactionIsOpen = true;
+    return this.exec('BEGIN').then(() => { this.transactionIsOpen = true; });
+  }
+
+  transactionEnd(method) {
+    return this.exec(method)
+      .then(() => { this.transactionIsOpen = false; })
+      .catch(err => {
+        this.transactionIsOpen = false;
+        return Promise.reject(err);
+      });
+  }
+
+  transactionCommit() {
+    return this.transactionEnd('COMMIT');
+  }
+
+  transactionRollback() {
+    return this.transactionEnd('ROLLBACK');
   }
 }
 

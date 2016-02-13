@@ -35,6 +35,7 @@ class Driver {
   }
 
   open(config) {
+    this.transactionIsOpen = false;
     this.config = config || this.config;
     this.conn = mysql.createConnection(this.config);
   }
@@ -108,6 +109,11 @@ class Driver {
 
   save(store, object, keys) {
     return Promise.resolve().then(() => {
+      if (this.transactionIsOpen) {
+        // A manually-opened transaction is already in progress
+        return;
+      }
+
       // Begin transaction
       return this.query('START TRANSACTION');
     }).then(() => {
@@ -154,6 +160,11 @@ class Driver {
 
       // Execute insert statement
       return this.query(sql, paramValues).then(result => {
+        if (this.transactionIsOpen) {
+          // A manually-opened transaction must also be closed manually
+          return result;
+        }
+
         // End transaction
         return this.query('COMMIT').then(() => result);
       }).then(result => {
@@ -206,6 +217,28 @@ class Driver {
     const sql = `DELETE FROM ${store}` + util.expandCriteria(criteria, sanitize, params);
 
     return this.query(sql, params);
+  }
+
+  transactionBegin() {
+    this.transactionIsOpen = true;
+    return this.query('START TRANSACTION').then(() => { this.transactionIsOpen = true; });
+  }
+
+  transactionEnd(method) {
+    return this.query(method)
+      .then(() => { this.transactionIsOpen = false; })
+      .catch(err => {
+        this.transactionIsOpen = false;
+        return Promise.reject(err);
+      });
+  }
+
+  transactionCommit() {
+    return this.transactionEnd('COMMIT');
+  }
+
+  transactionRollback() {
+    return this.transactionEnd('ROLLBACK');
   }
 }
 
