@@ -1,6 +1,9 @@
 'use strict';
 
-const Driver = require('./driver-sqlite');
+const driver = {
+  MySQL: require('./driver-mysql'),
+  SQLite: require('./driver-sqlite')
+};
 const Queue = require('./queue');
 
 const defaultCriteria = criteria => {
@@ -47,7 +50,7 @@ class JSONStore {
     }
 
     this.queue = new Queue();
-    this.driver = customDriver || new Driver();
+    this.driver = customDriver || new driver.SQLite();
     this.driver.init(config);
   }
 
@@ -168,4 +171,5 @@ class JSONStore {
   }
 }
 
+JSONStore.driver = driver;
 module.exports = JSONStore;
