@@ -16,15 +16,15 @@
     "lint": "eslint .",
     "test": "mocha && eslint ."
   },
-  "peerDependencies": {
+  "optionalDependencies": {
     "mysql": "^2.10.2",
     "sqlite3": "^3.1.1"
   },
   "devDependencies": {
-    "eslint": "^1.10.3",
-    "mocha": "^2.4.5",
-    "mysql": "^2.10.2",
-    "should": "^8.2.1",
-    "sqlite3": "^3.1.1"
+    "eslint": "^3.12.2",
+    "mocha": "^3.2.0",
+    "mysql": "^2.12.0",
+    "should": "^11.1.2",
+    "sqlite3": "^3.1.8"
   }
 }
