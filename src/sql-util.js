@@ -79,19 +79,22 @@ const createStore = (name, keys, sanitize, autoincrement) => {
   const columns = [];
   const meta = { keys: Object.keys(keys) };
   let sql = `CREATE TABLE \`${name}\``;
+  keys.__created = 'timestamp';
   keys.__jsondata = 'string';
 
   Object.keys(keys).forEach(key => {
     let column = `\`${key}\` `;
 
-    if (keys[key] === 'number') {
+    if (key === '__jsondata') {
+      column += 'TEXT';
+    } else if (key === '__created') {
+      column += 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP';
+    } else if (keys[key] === 'number') {
       column += 'INTEGER';
+    } else if (keys[key] === 'timestamp') {
+      column += 'TIMESTAMP';
     } else {
-      if (!/^__/.test(key)) {
-        column += 'VARCHAR(255)';
-      } else {
-        column += 'TEXT';
-      }
+      column += 'VARCHAR(255)';
     }
 
     if (key === 'id') {

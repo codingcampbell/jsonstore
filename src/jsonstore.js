@@ -70,7 +70,7 @@ class JSONStore {
     Object.keys(keys).forEach(key => {
       keys[key] = String(keys[key]).toLowerCase();
 
-      if (keys[key] !== 'string' && keys[key] !== 'number') {
+      if (keys[key] !== 'timestamp' && keys[key] !== 'number') {
         keys[key] = 'string';
       }
     });
