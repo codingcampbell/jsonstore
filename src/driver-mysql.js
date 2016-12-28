@@ -200,7 +200,7 @@ class Driver {
       }
 
       try {
-        result.data = JSON.parse(`[${result.data.map(r => r.__jsondata).join(',')}]`);
+        result.data = result.data.map(r => JSON.parse(r.__jsondata));
       } catch (err) {
         result.setError(err);
         return Promise.reject(result);
