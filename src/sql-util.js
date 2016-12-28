@@ -78,20 +78,23 @@ const createStore = (name, keys, sanitize, autoincrement) => {
   const statements = [];
   const columns = [];
   const meta = { keys: Object.keys(keys) };
-  let sql = `CREATE TABLE \`${name}\``;
-  keys.__created = 'timestamp';
-  keys.__jsondata = 'string';
+  const dbKeys = Object.assign({}, keys, {
+    __created: 'timestamp',
+    __jsondata: 'string',
+  });
 
-  Object.keys(keys).forEach(key => {
+  let sql = `CREATE TABLE \`${name}\``;
+
+  Object.keys(dbKeys).forEach(key => {
     let column = `\`${key}\` `;
 
     if (key === '__jsondata') {
       column += 'TEXT';
     } else if (key === '__created') {
       column += 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP';
-    } else if (keys[key] === 'number') {
+    } else if (dbKeys[key] === 'number') {
       column += 'INTEGER';
-    } else if (keys[key] === 'timestamp') {
+    } else if (dbKeys[key] === 'timestamp') {
       column += 'TIMESTAMP';
     } else {
       column += 'VARCHAR(255)';
@@ -106,8 +109,8 @@ const createStore = (name, keys, sanitize, autoincrement) => {
 
     columns.push(column);
 
-    // Index user-specified keys only
-    if (!/^__/.test(key)) {
+    // Index every key except the raw JSON data
+    if (key !== '__jsondata') {
       const type = (key === 'id' && 'UNIQUE' || '') + ' INDEX';
       statements.push(`CREATE ${type} \`idx-${name}-${key}\` ON \`${name}\`(\`${key}\`)`);
     }
